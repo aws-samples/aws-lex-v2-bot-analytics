@@ -1,0 +1,41 @@
+{
+    "logGroups": "lex-analytics-oatoa-conversation-logs",
+    "botId": "IJE04MZEZ3",
+    "botLocaleId": "en_US",
+    "widgetType": "heatmapIntentPerHour",
+    "query": "fields sessionState.intent.name as @intent | stats count(*) as @count by bin(1h) as @t, @intent",
+    "widgetContext": {
+        "dashboardName": "lex-analytics-oatoa-Conversation-Analytics",
+        "widgetId": "widget-103",
+        "domain": "https://console.aws.amazon.com",
+        "accountId": "531380608753",
+        "locale": "en",
+        "timezone": {
+            "label": "Local",
+            "offsetISO": "-04:00",
+            "offsetInMinutes": 240
+        },
+        "period": 300,
+        "isAutoPeriod": true,
+        "timeRange": {
+            "mode": "absolute",
+            "start": 1628164818903,
+            "end": 1628179218903
+        },
+        "theme": "light",
+        "linkCharts": true,
+        "title": "Intent match count heatmap per hour of day",
+        "params": {
+            "logGroups": "lex-analytics-oatoa-conversation-logs",
+            "botId": "IJE04MZEZ3",
+            "botLocaleId": "en_US",
+            "widgetType": "heatmapIntentPerHour",
+            "query": "fields sessionState.intent.name as @intent | stats count(*) as @count by bin(1h) as @t, @intent"
+        },
+        "forms": {
+            "all": {}
+        },
+        "width": 791,
+        "height": 696
+    }
+}

@@ -1,0 +1,26 @@
+{
+    "RequestType": "Delete",
+    "ServiceToken": "arn:aws:lambda:us-east-1:012345678912:function:lex-analytics",
+    "ResponseURL": "https://cloudformation-custom-resource-response-useast1.s3.amazonaws.com/",
+    "StackId": "arn:aws:cloudformation:us-east-1:012345678912:stack/lex-analytics/abcdef",
+    "RequestId": "abcdef",
+    "LogicalResourceId": "CountMessagesMetricFilterDimension",
+    "PhysicalResourceId": "lex-analytics-CountMessagesMetricFilterDimension",
+    "ResourceType": "Custom::MetricFilterDimension",
+    "ResourceProperties": {
+        "ServiceToken": "arn:aws:lambda:us-east-1:531380608753:function:lex-analytics",
+        "MetricTransformations": [
+            {
+                "MetricName": "Count_Messages",
+                "MetricNamespace": "Activity",
+                "Dimensions": {
+                    "LocaleId": "$.bot.localeId",
+                    "Intent": "$.sessionState.intent.name",
+                    "BotName": "$.bot.name"
+                }
+            }
+        ],
+        "LogGroupName": "lex-analytics-oatoa-conversation-logs",
+        "FilterName": "lex-analytics-oatoa-CountMessagesMetricFilter-YESBZZEDQ4AS"
+    }
+}

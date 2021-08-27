@@ -1,0 +1,44 @@
+{
+    "botId": "IJE04MZEZ3",
+    "botLocaleId": "en_US",
+    "widgetType": "heatmapIntentPerHour",
+    "logGroups": "lex-analytics-oatoa-conversation-logs",
+    "query": "fields concat(bot.name, ':', bot.localeId, ':', sessionState.intent.name) as @intent | stats count(*) as @count by bin(1h) as @t, @intent",
+    "widgetContext": {
+        "dashboardName": "lex-analytics-oatoa-Conversation-Analytics",
+        "widgetId": "widget-4",
+        "domain": "https://console.aws.amazon.com",
+        "accountId": "531380608753",
+        "locale": "en",
+        "timezone": {
+            "label": "Local",
+            "offsetISO": "-04:00",
+            "offsetInMinutes": 240
+        },
+        "period": 300,
+        "isAutoPeriod": true,
+        "timeRange": {
+            "mode": "relative",
+            "start": 1627298099670,
+            "end": 1627308899670,
+            "relativeStart": 10800005
+        },
+        "theme": "light",
+        "linkCharts": true,
+        "title": "Input Transcript",
+        "params": {
+            "logGroups": "lex-analytics-oatoa-conversation-logs",
+            "botId": "IJE04MZEZ3",
+            "botLocaleId": "en_US",
+            "widgetType": "heatmapIntentPerHour"
+        },
+        "forms": {
+            "all": {
+                "logGroups": "lex-analytics-oatoa-conversation-logs",
+                "query": "fields concat(bot.name, ':', bot.localeId, ':', sessionState.intent.name) as @intent | stats count(*) as @count by bin(1h) as @t, @intent"
+            }
+        },
+        "width": 851,
+        "height": 396
+    }
+}

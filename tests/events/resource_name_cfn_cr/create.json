@@ -1,0 +1,15 @@
+{
+    "RequestType": "Create",
+    "ServiceToken": "arn:aws:lambda:us-east-1:012345678912:function:lex-analytics",
+    "ResponseURL": "https://cloudformation-custom-resource-response-useast1.s3.amazonaws.com/",
+    "StackId": "arn:aws:cloudformation:us-east-1:012345678912:stack/lex-analytics/abcdef",
+    "RequestId": "abcdef",
+    "LogicalResourceId": "ResourceName",
+    "ResourceType": "Custom::ResourceName",
+    "ResourceProperties": {
+        "ServiceToken": "arn:aws:lambda:us-east-1:012345678912:function:lex-analytics",
+        "BotId": "6TWUHNKPMI",
+        "BotLocaleId": "en_US",
+        "StackName": "serverlessrepo-mystack"
+    }
+}
