@@ -1,0 +1,33 @@
+# https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html
+# https://aws.amazon.com/blogs/compute/optimizing-serverless-development-with-samconfig/
+
+version=0.1
+[default.build.parameters]
+use_container = true
+
+[default.deploy.parameters]
+stack_name = "lex-analytics"
+s3_bucket = "lex-analytics-artifacts-531380608753-us-east-1"
+s3_prefix = "sam-artifacts/lex-analytics"
+region = "us-east-1"
+fail_on_empty_changeset = false
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+parameter_overrides = [
+  "ShouldDeploySampleBots=true",
+  "ShouldAddWriteWidgets=true",
+]
+
+[default.package.parameters]
+s3_bucket = "lex-analytics-artifacts-531380608753-us-east-1"
+s3_prefix = "sam-artifacts/lex-analytics"
+
+[default.publish.parameters]
+region = "us-east-1"
+
+[publish-account.package.parameters]
+s3_bucket = "lex-analytics-artifacts-777566285978-us-east-1"
+s3_prefix = "sam-artifacts/lex-analytics"
+
+[publish-account.publish.parameters]
+region = "us-east-1"

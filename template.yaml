@@ -1,0 +1,1623 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Description: |-
+  Lex V2 Analytics. Deploys a CloudWatch Dashboard for your Lex V2 bot.
+
+Parameters:
+  ShouldDeploySampleBots:
+    Description: >-
+      If set to true, deploys a sample bot for testing. In that case, the BotId
+      and BotLocaleId parameters will be ignored. Set to false if you are
+      passing the BotId and BotLocaleId of an existing bot.
+    Type: String
+    Default: false
+    AllowedValues:
+      - true
+      - false
+
+  LogLevel:
+    Description: Lambda log level
+    Type: String
+    Default: DEBUG
+    AllowedValues:
+      - CRITICAL
+      - ERROR
+      - WARNING
+      - INFO
+      - DEBUG
+
+  LogRetentionInDays:
+    Description: >-
+      CloudWatch Logs retention in days for the Bot Conversation Logs. This is
+      only used when the stack creates a Log Group for you if the
+      LexConversationLogGroupName parameter is left empty.
+    Type: Number
+    Default: 90
+    AllowedValues:
+      # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-logs-loggroup.html#cfn-logs-loggroup-retentionindays
+      [
+        1, 3, 5, 7, 14, 30, 60, 90, 120, 150,
+        180, 365, 400, 545, 731, 1827, 3653,
+      ]
+
+  BotId:
+    Description: >-
+      Lex V2 Bot ID. This value is ignored if you set the ShouldDeploySampleBots
+      parameter to true
+    Type: String
+    Default: ''
+    AllowedPattern: '^([A-Z0-9]{10}|)$'
+
+  BotLocaleId:
+    Description: >-
+      Locale Ids This value is ignored if you set the ShouldDeploySampleBots
+      parameter to true
+    Type: String
+    Default: en_US
+    AllowedPattern: '^([\w-]{4,}|)$'
+
+  LexConversationLogGroupName:
+    Description: >-
+      Name of existing CloudWatch Log Group containing Lex Conversation Logs.
+      If left empty, a Log Group will be created with a name based on the stack
+      name. You can use this created log group (if parameter left empy)
+      when you configure the conversation logs in your Lex bot.
+    Type: String
+    Default: ''
+    AllowedPattern: '^([\.\-_/#A-Za-z0-9]+|)$'
+
+  ShouldAddWriteWidgets:
+    Description: >-
+      If set to true, the stack add widgets with write capabilities to the
+      dashboard. Set to false if you only want read-only widgets that display
+      visualizations. Setting to true will add widgets that allow to make
+      changes to your bot.
+    Type: String
+    Default: false
+    AllowedValues:
+      - true
+      - false
+
+Conditions:
+  ShouldDeploySampleBots: !Equals [!Ref ShouldDeploySampleBots, true]
+  ShouldCreateLogGroup: !Equals [!Ref LexConversationLogGroupName, '']
+  ShouldAddWriteWidgets: !Equals [!Ref ShouldAddWriteWidgets, true]
+
+Mappings:
+  Config:
+    # Lex V2 CloudFormation Custom Resource
+    CfnCr:
+      Arn:
+        arn:aws:serverlessrepo:us-east-1:777566285978:applications/lex-v2-cfn-cr
+      Version: 0.3.0
+
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: lexv2-analytics
+    Description: Amazon Lex V2 Analytics Dashboard
+    Author: AWS Lex SA Team
+    ReadmeUrl: README.md
+    SpdxLicenseId: MIT-0
+    LicenseUrl: LICENSE
+    Labels:
+      - Lex
+      - V2
+      - Dashboard
+      - CloudWatch
+    HomePageUrl: https://github.com/aws-samples/aws-lex-v2-bot-analytics
+    SemanticVersion: 0.1.0
+    SourceCodeUrl: https://github.com/aws-samples/aws-lex-v2-bot-analytics
+
+Resources:
+  ##########################################################################
+  # IAM
+  ##########################################################################
+  CwMfdCfnCrIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Description:
+        !Sub "Used by CloudWatch Metric Filter Dimension Lambda \
+              CloudFormation Custom Resource in: ${AWS::StackName}"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: Cwl
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:DescribeMetricFilters
+                  - logs:PutMetricFilter
+                Resource: "*"
+
+  CwCustomWidgetFunctionIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Description:
+        !Sub "Used by CloudWatch Custom Widget Lambda in: ${AWS::StackName}"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: CwlInsightsQuery
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:StartQuery
+                Resource:
+                  !Sub
+                  - "arn:${AWS::Partition}:logs:${AWS::Region}:\
+                     ${AWS::AccountId}:log-group:${LogGroupName}:log-stream:*"
+                  - LogGroupName:
+                      !If
+                      - ShouldCreateLogGroup
+                      - !Ref LexBotConversationLogs
+                      - !Ref LexConversationLogGroupName
+              - Effect: Allow
+                Action:
+                  - logs:GetQueryResults
+                Resource: "*"
+        - !If
+          - ShouldAddWriteWidgets
+          - PolicyName: LexModels
+            PolicyDocument:
+              Version: 2012-10-17
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - lex:DescribeIntent
+                    - lex:ListIntents
+                    - lex:UpdateIntent
+                  Resource:
+                    !Sub
+                    - "arn:${AWS::Partition}:lex:${AWS::Region}:\
+                       ${AWS::AccountId}:bot/${BotId}"
+                    - BotId:
+                        !If
+                        - ShouldDeploySampleBots
+                        - !Ref BankerBotLexBot
+                        - !Ref BotId
+          - !Ref AWS::NoValue
+
+  LexBotPolicy:
+    Condition: ShouldDeploySampleBots
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName:
+        Fn::Sub: ${AWS::StackName}-CloudWatchLogs
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource:
+              !If
+              - ShouldCreateLogGroup
+              - !GetAtt LexBotConversationLogs.Arn
+              - !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:\
+                      ${AWS::AccountId}:log-group:\
+                      ${LexConversationLogGroupName}:*"
+      Roles:
+        - Fn::Select:
+            - 2
+            - Fn::Split:
+                - /
+                - Fn::Select:
+                    - 5
+                    - Fn::Split:
+                        - ':'
+                        - !GetAtt LexV2CfnCr.Outputs.LexServiceLinkedRole
+
+  ##########################################################################
+  # Lambda
+  ##########################################################################
+  CwMfdCfnCrFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/lambda_functions/cw_metric_filter_cr
+      Description: >-
+        CloudWatch Metric Filter Dimension CloudFormation Customer Resource
+      Handler: lambda_function.handler
+      MemorySize: 128
+      Role: !GetAtt CwMfdCfnCrIamRole.Arn
+      Layers:
+        - !Ref SharedCfnCrPythonLayer
+      Runtime: python3.9
+      Timeout: 30
+      Environment:
+        Variables:
+          LOG_LEVEL: !Ref LogLevel
+
+  ResourceNameCfnCrFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/lambda_functions/resource_name_cfn_cr
+      Description:
+        !Sub "Lex Analytics Resource Name CloudFormation Customer Resource for \
+              ${AWS::StackName}"
+      Handler: lambda_function.handler
+      MemorySize: 128
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - lex:DescribeBot
+              Resource: '*'
+      Runtime: python3.9
+      Layers:
+        - !Ref SharedCfnCrPythonLayer
+      Timeout: 30
+      Environment:
+        Variables:
+          LOG_LEVEL: !Ref LogLevel
+
+  SharedNodeJsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Metadata:
+      BuildMethod: nodejs14.x
+    Properties:
+      Description:
+        !Sub "Lex Analytics shared Node.js layer for stack: ${AWS::StackName}"
+      ContentUri: ./src/lambda_layers/shared_nodejs
+      LayerName: !Sub "LexAnalyticsSharedNodeJs-${AWS::StackName}"
+      CompatibleRuntimes:
+        - nodejs14.x
+
+  SharedCfnCrPythonLayer:
+    Type: AWS::Serverless::LayerVersion
+    Metadata:
+      BuildMethod: python3.9
+    Properties:
+      Description:
+        !Sub "Lex Analytics shared CloudFormation Custom Resource layer for
+              stack: ${AWS::StackName}"
+      ContentUri: ./src/lambda_layers/shared_cfn_cr_python
+      LayerName: !Sub "SharedCfnCrPythonLayer-${AWS::StackName}"
+      CompatibleRuntimes:
+        - python3.9
+
+  CwCustomWidgetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/lambda_functions/cw_custom_widget_nodejs
+      Description: !Sub
+        CloudWatch Custom Widget for ${AWS::StackName}
+      Handler: index.handler
+      Runtime: nodejs14.x
+      Layers:
+        - !Ref SharedNodeJsLayer
+      MemorySize: 512
+      Role: !GetAtt CwCustomWidgetFunctionIamRole.Arn
+      Timeout: 300
+
+  ##########################################################################
+  # Resource Name Custom Resource
+  ##########################################################################
+  ResourceName:
+    Type: Custom::ResourceName
+    Properties:
+      ServiceToken: !GetAtt ResourceNameCfnCrFunction.Arn
+      BotId:
+        !If
+        - ShouldDeploySampleBots
+        - !Ref BankerBotLexBot
+        - !Ref BotId
+      BotLocaleId:
+        !If
+        - ShouldDeploySampleBots
+        - Fn::Select:
+            - 0
+            - Fn::Split:
+                - ','
+                - !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
+        - !Ref BotLocaleId
+      StackName: !Ref AWS::StackName
+
+  ##########################################################################
+  # CloudWatch
+  ##########################################################################
+  LexBotConversationLogs:
+    Condition: ShouldCreateLogGroup
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "${AWS::StackName}-conversation-logs"
+      RetentionInDays: !Ref LogRetentionInDays
+
+  CountMessagesMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      FilterPattern:
+        !Sub
+        - >-
+            {
+              ($.bot.id = "${BotId}")
+              && ($.bot.localeId = "${BotLocaleId}")
+              && ($.inputTranscript = *)
+              && ($.sessionState.intent.name = *)
+            }
+        - BotId:
+            !If
+            - ShouldDeploySampleBots
+            - !Ref BankerBotLexBot
+            - !Ref BotId
+          BotLocaleId:
+            !If
+            - ShouldDeploySampleBots
+            - Fn::Select:
+                - 0
+                - Fn::Split:
+                    - ','
+                    - !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
+            - !Ref BotLocaleId
+      LogGroupName:
+        !If
+        - ShouldCreateLogGroup
+        - !Ref LexBotConversationLogs
+        - !Ref LexConversationLogGroupName
+      MetricTransformations:
+        - MetricName: CountMessages
+          MetricValue: "1"
+          MetricNamespace:
+            !Sub
+            - >-
+              Lex/Activity/${BotId}
+            - BotId:
+                !If
+                - ShouldDeploySampleBots
+                - !Ref BankerBotLexBot
+                - !Ref BotId
+
+  CountMessagesMetricFilterDimension:
+    Type: Custom::MetricFilterDimension
+    Properties:
+      ServiceToken: !GetAtt CwMfdCfnCrFunction.Arn
+      FilterName: !Ref CountMessagesMetricFilter
+      LogGroupName:
+        !If
+        - ShouldCreateLogGroup
+        - !Ref LexBotConversationLogs
+        - !Ref LexConversationLogGroupName
+      MetricTransformations:
+        - MetricName: CountMessages
+          MetricNamespace:
+            !Sub
+            - >-
+              Lex/Activity/${BotId}
+            - BotId:
+                !If
+                - ShouldDeploySampleBots
+                - !Ref BankerBotLexBot
+                - !Ref BotId
+          Dimensions:
+            BotVersion: >-
+              $.bot.version
+            BotAliasName: >-
+              $.bot.aliasName
+            Intent: >-
+              $.sessionState.intent.name
+
+  MissedUtteranceMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      FilterPattern:
+        !Sub
+        - >-
+            {
+              ($.bot.id = "${BotId}")
+              && ($.bot.localeId = "${BotLocaleId}")
+              && ($.sessionState.intent.name = *)
+              && ($.missedUtterance IS TRUE)
+            }
+        - BotId:
+            !If
+            - ShouldDeploySampleBots
+            - !Ref BankerBotLexBot
+            - !Ref BotId
+          BotLocaleId:
+            !If
+            - ShouldDeploySampleBots
+            - Fn::Select:
+                - 0
+                - Fn::Split:
+                    - ','
+                    - !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
+            - !Ref BotLocaleId
+      LogGroupName:
+        !If
+        - ShouldCreateLogGroup
+        - !Ref LexBotConversationLogs
+        - !Ref LexConversationLogGroupName
+      MetricTransformations:
+        - MetricName: MissedUtterance
+          MetricValue: "1"
+          MetricNamespace:
+            !Sub
+            - >-
+              Lex/Activity/${BotId}
+            - BotId:
+                !If
+                - ShouldDeploySampleBots
+                - !Ref BankerBotLexBot
+                - !Ref BotId
+
+  MissedUtteranceMetricFilterDimension:
+    Type: Custom::MetricFilterDimension
+    Properties:
+      ServiceToken: !GetAtt CwMfdCfnCrFunction.Arn
+      FilterName: !Ref MissedUtteranceMetricFilter
+      LogGroupName:
+        !If
+        - ShouldCreateLogGroup
+        - !Ref LexBotConversationLogs
+        - !Ref LexConversationLogGroupName
+      MetricTransformations:
+        - MetricName: MissedUtterance
+          MetricNamespace:
+            !Sub
+            - >-
+              Lex/Activity/${BotId}
+            - BotId:
+                !If
+                - ShouldDeploySampleBots
+                - !Ref BankerBotLexBot
+                - !Ref BotId
+          Dimensions:
+            BotVersion: >-
+              $.bot.version
+            BotAliasName: >-
+              $.bot.aliasName
+            Intent: >-
+              $.sessionState.intent.name
+
+  InputModeMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      FilterPattern:
+        !Sub
+        - >-
+            {
+              ($.bot.id = "${BotId}")
+              && ($.bot.localeId = "${BotLocaleId}")
+              && ($.inputMode = *)
+            }
+        - BotId:
+            !If
+            - ShouldDeploySampleBots
+            - !Ref BankerBotLexBot
+            - !Ref BotId
+          BotLocaleId:
+            !If
+            - ShouldDeploySampleBots
+            - Fn::Select:
+                - 0
+                - Fn::Split:
+                    - ','
+                    - !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
+            - !Ref BotLocaleId
+      LogGroupName:
+        !If
+        - ShouldCreateLogGroup
+        - !Ref LexBotConversationLogs
+        - !Ref LexConversationLogGroupName
+      MetricTransformations:
+        - MetricName: inputModeMetric
+          MetricValue: "1"
+          MetricNamespace:
+            !Sub
+            - >-
+              Lex/Activity/${BotId}
+            - BotId:
+                !If
+                - ShouldDeploySampleBots
+                - !Ref BankerBotLexBot
+                - !Ref BotId
+
+  InputModeMetricFilterDimension:
+    Type: Custom::MetricFilterDimension
+    Properties:
+      ServiceToken: !GetAtt CwMfdCfnCrFunction.Arn
+      FilterName: !Ref InputModeMetricFilter
+      LogGroupName:
+        !If
+        - ShouldCreateLogGroup
+        - !Ref LexBotConversationLogs
+        - !Ref LexConversationLogGroupName
+      MetricTransformations:
+        - MetricName: inputModeMetric
+          MetricNamespace:
+            !Sub
+            - >-
+              Lex/Activity/${BotId}
+            - BotId:
+                !If
+                - ShouldDeploySampleBots
+                - !Ref BankerBotLexBot
+                - !Ref BotId
+          Dimensions:
+            BotVersion: >-
+              $.bot.version
+            BotAliasName: >-
+              $.bot.aliasName
+            inputModeDimension: >-
+              $.inputMode
+
+  SessionIdContributorInsight:
+    Type: AWS::CloudWatch::InsightRule
+    Properties:
+      RuleName:
+        !Sub
+        - "${ResourceName}-SessionId"
+        - BotId:
+            !If
+            - ShouldDeploySampleBots
+            - !Ref BankerBotLexBot
+            - !Ref BotId
+          BotLocaleId:
+            !If
+            - ShouldDeploySampleBots
+            - Fn::Select:
+                - 0
+                - Fn::Split:
+                    - ','
+                    - !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
+            - !Ref BotLocaleId
+      RuleState: ENABLED
+      RuleBody:
+        !Sub
+        - >-
+          {
+            "AggregateOn": "Count",
+            "Contribution": {
+              "Filters": [],
+              "Keys": [
+                "$.sessionId"
+              ]
+            },
+            "LogFormat": "JSON",
+            "LogGroupNames": [
+              "${LogGroupName}"
+            ],
+            "Schema": {
+              "Name": "CloudWatchLogRule",
+              "Version": 1
+            }
+          }
+        - LogGroupName:
+            !If
+            - ShouldCreateLogGroup
+            - !Ref LexBotConversationLogs
+            - !Ref LexConversationLogGroupName
+
+  MessageContributorInsight:
+    Type: AWS::CloudWatch::InsightRule
+    Properties:
+      RuleName:
+        !Sub
+        - "${ResourceName}-Message"
+        - BotId:
+            !If
+            - ShouldDeploySampleBots
+            - !Ref BankerBotLexBot
+            - !Ref BotId
+          BotLocaleId:
+            !If
+            - ShouldDeploySampleBots
+            - Fn::Select:
+                - 0
+                - Fn::Split:
+                    - ','
+                    - !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
+            - !Ref BotLocaleId
+      RuleState: ENABLED
+      RuleBody:
+        !Sub
+        - >-
+          {
+            "AggregateOn": "Count",
+            "Contribution": {
+              "Filters": [],
+              "Keys": [
+                "$.inputTranscript"
+              ]
+            },
+            "LogFormat": "JSON",
+            "LogGroupNames": [
+              "${LogGroupName}"
+            ],
+            "Schema": {
+              "Name": "CloudWatchLogRule",
+              "Version": 1
+            }
+          }
+        - LogGroupName:
+            !If
+            - ShouldCreateLogGroup
+            - !Ref LexBotConversationLogs
+            - !Ref LexConversationLogGroupName
+
+  LexAnalyticsCWLDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName:
+        !Sub
+        - "Lex-Analytics-${ResourceName}"
+        - BotId:
+            !If
+            - ShouldDeploySampleBots
+            - !Ref BankerBotLexBot
+            - !Ref BotId
+          BotLocaleId:
+            !If
+            - ShouldDeploySampleBots
+            - Fn::Select:
+                - 0
+                - Fn::Split:
+                    - ','
+                    - !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
+            - !Ref BotLocaleId
+      DashboardBody:
+        !Sub
+        # yamllint disable rule:line-length
+        - >-
+          {
+            "widgets": [
+              {
+                "height": 1,
+                "width": 18,
+                "y": 0,
+                "x": 0,
+                "type": "text",
+                "properties": {
+                  "markdown": "# Activity"
+                }
+              },
+              {
+                "height": 6,
+                "width": 9,
+                "y": 4,
+                "x": 9,
+                "type": "metric",
+                "properties": {
+                  "metrics": [
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, Intent} MetricName=\"CountMessages\"', 'Sum', 300)", "label": "", "id": "e1", "visible": false } ],
+                    [ { "expression": "SUM(e1)", "label": "SumupMessages", "id": "e2" } ]
+                  ],
+                  "view": "timeSeries",
+                  "yAxis": {
+                    "left": {
+                      "showUnits": false,
+                      "min": 0
+                    }
+                  },
+                  "region": "${AWS::Region}",
+                  "stat": "Sum",
+                  "period": 300,
+                  "setPeriodToTimeRange": true,
+                  "title": "Messages"
+                }
+              },
+              {
+                "height": 6,
+                "width": 9,
+                "y": 10,
+                "x": 9,
+                "type": "metric",
+                "properties": {
+                  "metrics": [
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, Intent} MetricName=\"CountMessages\" ', 'Sum', 259200)", "label": "", "id": "e1" } ]
+                  ],
+                  "view": "bar",
+                  "stacked": false,
+                  "region": "${AWS::Region}",
+                  "setPeriodToTimeRange": true,
+                  "stat": "Sum",
+                  "period": 300,
+                  "title": "Top Intents"
+                }
+              },
+              {
+                "height": 1,
+                "width": 18,
+                "y": 16,
+                "x": 0,
+                "type": "text",
+                "properties": {
+                  "markdown": "# Demographic"
+                }
+              },
+              {
+                "height": 6,
+                "width": 18,
+                "y": 17,
+                "x": 0,
+                "type": "metric",
+                "properties": {
+                 "metrics": [
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, inputModeDimension} MetricName=\"inputModeMetric\"', 'Sum', 259200)", "label": "", "id": "e1" } ]
+                  ],
+                  "view": "pie",
+                  "stacked": false,
+                  "region": "${AWS::Region}",
+                  "stat": "Sum",
+                  "period": 300,
+                  "setPeriodToTimeRange": true,
+                  "labels": {
+                    "visible": false
+                  },
+                  "title": "Modality"
+                }
+              },
+              {
+                "height": 1,
+                "width": 18,
+                "y": 23,
+                "x": 0,
+                "type": "text",
+                "properties": {
+                  "markdown": "# Missed Utterances"
+                }
+              },
+              {
+                "height": 6,
+                "width": 6,
+                "y": 30,
+                "x": 0,
+                "type": "metric",
+                "properties": {
+                  "metrics": [
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\" ', 'Sum', 259200)" } ]
+                  ],
+                  "view": "bar",
+                  "stacked": false,
+                  "region": "${AWS::Region}",
+                  "setPeriodToTimeRange": true,
+                  "stat": "Sum",
+                  "period": 300,
+                  "title": "MissedUtterance for Intents "
+                }
+              },
+              {
+                "height": 6,
+                "width": 6,
+                "y": 30,
+                "x": 6,
+                "type": "metric",
+                "properties": {
+                  "view": "pie",
+                  "stacked": false,
+                  "metrics": [
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\" ', 'Sum', 259200)" } ]
+                  ],
+                  "region": "${AWS::Region}",
+                  "setPeriodToTimeRange": true,
+                  "title": "% MissedUtterance for Intents"
+                }
+              },
+              {
+                "height": 6,
+                "width": 6,
+                "y": 30,
+                "x": 12,
+                "type": "log",
+                "properties": {
+                  "query": "SOURCE '${LogGroupName}' | FIELDS @message | filter missedUtterance = 1 | display inputTranscript",
+                  "region": "${AWS::Region}",
+                  "stacked": false,
+                  "title": "Missed Utterances History",
+                  "view": "table"
+                }
+              },
+              {
+                "height": 1,
+                "width": 18,
+                "y": 50,
+                "x": 0,
+                "type": "text",
+                "properties": {
+                  "markdown": "# Conversation History"
+                }
+              },
+              {
+                "type": "metric",
+                "x": 0,
+                "y": 51,
+                "width": 18,
+                "height": 6,
+                "properties": {
+                  "period": 60,
+                  "region": "${AWS::Region}",
+                  "stacked": false,
+                  "timezone": "local",
+                  "title": "Top 10 Messages",
+                  "view": "timeSeries",
+                  "insightRule": {
+                    "maxContributorCount": 10,
+                    "orderBy": "Sum",
+                    "ruleName": "${MessageContributorInsight.RuleName}"
+                  },
+                  "legend": {
+                    "position": "right"
+                  }
+                }
+              },
+              {
+                "height": 6,
+                "width": 18,
+                "y": 51,
+                "x": 0,
+                "type": "log",
+                "properties": {
+                  "query": "SOURCE '${LogGroupName}' | FIELDS @message | display sessionId, timestamp, inputTranscript",
+                  "region": "${AWS::Region}",
+                  "stacked": false,
+                  "title": "Message History",
+                  "view": "table"
+                }
+              },
+              {
+                "height": 1,
+                "width": 18,
+                "y": 37,
+                "x": 0,
+                "type": "text",
+                "properties": {
+                  "markdown": "# Conversation"
+                }
+              },
+              {
+                "height": 6,
+                "width": 9,
+                "y": 24,
+                "x": 0,
+                "type": "metric",
+                "properties": {
+                  "metrics": [
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\"', 'Sum', 300)", "label": "Expression1", "id": "e1", "visible": false } ],
+                    [ { "expression": "SUM(e1)", "label": "Missed Utterances", "id": "e2", "period": 60 } ]
+                  ],
+                  "view": "timeSeries",
+                  "stacked": false,
+                  "region": "${AWS::Region}",
+                  "stat": "SampleCount",
+                  "period": 300,
+                  "yAxis": {
+                    "left": {
+                      "label": "",
+                      "showUnits": false,
+                      "min": 0
+                    },
+                    "right": {
+                      "showUnits": true
+                    }
+                  },
+                  "liveData": false,
+                  "legend": {
+                      "position": "bottom"
+                  },
+                  "title": "Missed Utterances"
+                }
+              },
+              {
+                "height": 6,
+                "width": 9,
+                "y": 24,
+                "x": 9,
+                "type": "metric",
+                "properties": {
+                  "metrics": [
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, Intent} MetricName=\"CountMessages\"', 'SampleCount', 300)", "label": "SearchCountMessges", "id": "e1", "visible": false, "region": "${AWS::Region}" } ],
+                    [ { "expression": "SUM(e1)", "label": "CountMessages", "id": "e2", "stat": "SampleCount", "visible": false, "region": "${AWS::Region}" } ],
+                    [ { "expression": "100*(e4/e2)", "label": "PercentageOfIncomingMessages", "id": "e3", "yAxis": "left", "stat": "SampleCount", "region": "${AWS::Region}" } ],
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\"', 'Sum', 300)", "label": "SearchMissedUtterance", "id": "e4", "visible": false, "region": "${AWS::Region}" } ],
+                    [ { "expression": "SUM(e4)", "label": "MissedUtterance", "id": "e5", "visible": false, "region": "${AWS::Region}" } ]
+                  ],
+                  "view": "timeSeries",
+                  "region": "${AWS::Region}",
+                  "stat": "SampleCount",
+                  "period": 300,
+                  "yAxis": {
+                    "left": {
+                      "label": "",
+                      "min": 0,
+                      "max": 100,
+                      "showUnits": false
+                    },
+                    "right": {
+                      "showUnits": true
+                    }
+                  },
+                  "liveData": false,
+                  "legend": {
+                    "position": "hidden"
+                  },
+                  "title": "% Incoming Messages"
+                }
+              },
+              {
+                "height": 6,
+                "width": 9,
+                "y": 4,
+                "x": 0,
+                "type": "metric",
+                "properties": {
+                  "metrics": [
+                    [ { "expression": "INSIGHT_RULE_METRIC('${SessionIdContributorInsight.RuleName}', 'UniqueContributors')", "label": "SessionID", "id": "e0", "period": 300 } ]
+                  ],
+                  "region": "${AWS::Region}",
+                  "view": "timeSeries",
+                  "stacked": false,
+                  "stat": "Average",
+                  "yAxis": {
+                    "left": {
+                      "showUnits": false,
+                      "min": 0
+                    }
+                  },
+                  "legend": {
+                    "position": "bottom"
+                  },
+                  "title": "Sessions"
+                }
+              },
+              {
+                "height": 6,
+                "width": 9,
+                "y": 10,
+                "x": 0,
+                "type": "log",
+                "properties": {
+                  "query": "SOURCE '${LogGroupName}' | FIELDS @message | stats count(*) as Count_ by interpretations.0.sentimentResponse.sentiment as Sentiment",
+                  "region": "${AWS::Region}",
+                  "title": "Sentiment Analysis",
+                  "setPeriodToTimeRange": true,
+                  "view": "bar"
+                }
+              },
+              {
+                "height": 6,
+                "width": 9,
+                "y": 44,
+                "x": 0,
+                "type": "metric",
+                "properties": {
+                  "period": 300,
+                  "region": "${AWS::Region}",
+                  "stacked": false,
+                  "timezone": "local",
+                  "title": "Top 10 Sessions",
+                  "view": "timeSeries",
+                  "insightRule": {
+                    "maxContributorCount": 10,
+                    "orderBy": "Sum",
+                    "ruleName": "${SessionIdContributorInsight.RuleName}"
+                  },
+                  "legend": {
+                    "position": "right"
+                  }
+                }
+              },
+              {
+                "height": 6,
+                "width": 9,
+                "y": 44,
+                "x": 9,
+                "type": "metric",
+                "properties": {
+                  "metrics": [
+                    [ { "expression": "INSIGHT_RULE_METRIC('${SessionIdContributorInsight.RuleName}', 'UniqueContributors')", "label": "SessionID Sum", "id": "e0", "period": 300, "visible": false, "region": "${AWS::Region}" } ],
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, Intent} MetricName=\"CountMessages\"', 'Sum', 300)", "label": "SearchCountMessages", "id": "e1", "visible": false, "region": "${AWS::Region}" } ],
+                    [ { "expression": "SUM(e1)", "label": "CountMessages", "id": "e2", "visible": false, "region": "${AWS::Region}" } ],
+                    [ { "expression": "IF(e0 !=0, e2/e0, 0)", "label": "MessagesPerSessions", "id": "e3", "yAxis": "left", "region": "${AWS::Region}" } ]
+                  ],
+                  "region": "${AWS::Region}",
+                  "view": "timeSeries",
+                  "stacked": false,
+                  "stat": "Average",
+                  "period": 300,
+                  "setPeriodToTimeRange": true,
+                  "title": "Average Messages Per Sessions",
+                  "legend": {
+                    "position": "bottom"
+                  },
+                  "yAxis": {
+                    "left": {
+                      "showUnits": false,
+                      "min": 0
+                    }
+                  }
+                }
+              },
+              {
+                "height": 6,
+                "width": 18,
+                "y": 38,
+                "x": 0,
+                "type": "metric",
+                "properties": {
+                  "metrics": [
+                    [ { "expression": "INSIGHT_RULE_METRIC('${SessionIdContributorInsight.RuleName}', 'UniqueContributors')", "label": "SessionID Sum", "id": "e0", "period": 300, "visible": false } ],
+                    [ { "expression": "300/e0", "label": "Average Session Duration (in seconds)", "id": "e1" } ]
+                  ],
+                  "region": "${AWS::Region}",
+                  "view": "timeSeries",
+                  "stacked": false,
+                  "stat": "Average",
+                  "period": 300,
+                  "title": "Average Session Duration (in seconds)",
+                  "yAxis": {
+                    "left": {
+                      "showUnits": false,
+                      "min": 0,
+                      "label": "Seconds"
+                    },
+                    "right": {
+                      "showUnits": false
+                    }
+                  }
+                }
+              },
+              {
+                "height": 3,
+                "width": 18,
+                "y": 0,
+                "x": 0,
+                "type": "metric",
+                "properties": {
+                  "metrics": [
+                    [ { "expression": "SUM(e1)", "label": "Messages", "id": "e2" } ],
+                    [ { "expression": "INSIGHT_RULE_METRIC('${SessionIdContributorInsight.RuleName}', 'UniqueContributors')", "label": "Sessions", "id": "e0", "period": 60 } ],
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\"', 'Sum', 300)", "label": "MissedUtterance", "id": "e3" } ],
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, Intent} MetricName=\"CountMessages\"', 'SampleCount', 300)", "label": "SearchCountMessages", "id": "e1", "visible": false } ]
+                  ],
+                  "region": "${AWS::Region}",
+                  "view": "singleValue",
+                  "stacked": false,
+                  "setPeriodToTimeRange": true,
+                  "stat": "Average",
+                  "period": 60,
+                  "title": "Overview"
+                }
+              },
+              {
+                "type": "custom",
+                "width": 15,
+                "height": 15,
+                "properties": {
+                  "endpoint": "${CwCustomWidgetFunction.Arn}",
+                  "params": {
+                    "logGroups": "${LogGroupName}",
+                    "botId": "${BotId}",
+                    "botLocaleId": "${BotLocaleId}",
+                    "widgetType": "heatmapSessionHourOfDay",
+                    "query": "stats count(sessionId) as @count by bin(2h) as @t"
+                  },
+                  "updateOn": {
+                    "refresh": true,
+                    "timeRange": true
+                  },
+                  "title": "Session count heatmap per 2 hour block each day of the week"
+                }
+              },
+              {
+                "type": "custom",
+                "width": 15,
+                "height": 15,
+                "properties": {
+                  "endpoint": "${CwCustomWidgetFunction.Arn}",
+                  "params": {
+                    "logGroups": "${LogGroupName}",
+                    "botId": "${BotId}",
+                    "botLocaleId": "${BotLocaleId}",
+                    "widgetType": "heatmapIntentPerHour",
+                    "query": "fields sessionState.intent.name as @intent | stats count(*) as @count by bin(1h) as @t, @intent"
+                  },
+                  "updateOn": {
+                    "refresh": true,
+                    "timeRange": true
+                  },
+                  "title": "Intent match count heatmap per hour of day"
+                }
+              },
+              {
+                "type": "custom",
+                "width": 15,
+                "height": 15,
+                "properties": {
+                  "endpoint": "${CwCustomWidgetFunction.Arn}",
+                  "params": {
+                    "logGroups": "${LogGroupName}",
+                    "botId": "${BotId}",
+                    "botLocaleId": "${BotLocaleId}",
+                    "widgetType": "conversationPath",
+                    "query": "filter sessionState.intent.state = 'Fulfilled' | stats count(*) as count by sessionId as @sessionId, sessionState.intent.name as @intentName, bin(5s) as @period | sort @period asc"
+                  },
+                  "updateOn": {
+                    "refresh": true,
+                    "timeRange": true
+                  },
+                  "title": "Conversation path aggregated per session"
+                }
+              }
+              ${WriteWidgets}
+            ]
+          }
+        - BotId:
+            !If
+            - ShouldDeploySampleBots
+            - !Ref BankerBotLexBot
+            - !Ref BotId
+          BotLocaleId:
+            !If
+            - ShouldDeploySampleBots
+            - Fn::Select:
+                - 0
+                - Fn::Split:
+                    - ','
+                    - !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
+            - !Ref BotLocaleId
+          LogGroupName:
+            !If
+            - ShouldCreateLogGroup
+            - !Ref LexBotConversationLogs
+            - !Ref LexConversationLogGroupName
+          WriteWidgets:
+            !If
+            - ShouldAddWriteWidgets
+            - !Sub
+              - >-
+                ,{
+                  "type": "custom",
+                  "width": 15,
+                  "height": 15,
+                  "properties": {
+                    "endpoint": "${CwCustomWidgetFunction.Arn}",
+                    "params": {
+                      "logGroups": "${LogGroupName}",
+                      "botId": "${BotId}",
+                      "botLocaleId": "${BotLocaleId}",
+                      "widgetType": "missedUtterance",
+                      "query": "filter missedUtterance = 1 | stats count(*) as @count by inputTranscript as @missed_utterance | sort by count desc"
+                    },
+                    "updateOn": {
+                      "refresh": true,
+                      "timeRange": true
+                    },
+                    "title": "Add Missed Utterances"
+                  }
+                }
+              # yamllint enable rule:line-length
+              # is there a way to not repeat these subs everywhere (?)
+              - BotId:
+                  !If
+                  - ShouldDeploySampleBots
+                  - !Ref BankerBotLexBot
+                  - !Ref BotId
+                BotLocaleId:
+                  !If
+                  - ShouldDeploySampleBots
+                  - Fn::Select:
+                      - 0
+                      - Fn::Split:
+                          - ','
+                          - !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
+                  - !Ref BotLocaleId
+                LogGroupName:
+                  !If
+                  - ShouldCreateLogGroup
+                  - !Ref LexBotConversationLogs
+                  - !Ref LexConversationLogGroupName
+            - ''
+
+  ##########################################################################
+  # Sample Bot
+  ##########################################################################
+  # this deploys the Custom Resource as a nested CloudFormation stack
+  LexV2CfnCr:
+    Condition: ShouldDeploySampleBots
+    Type: AWS::Serverless::Application
+    Properties:
+      Location:
+        ApplicationId:
+          !FindInMap
+          - Config
+          - CfnCr
+          - Arn
+        SemanticVersion:
+          !FindInMap
+          - Config
+          - CfnCr
+          - Version
+      Parameters:
+        # Custom Resource Lambda log level
+        LogLevel: DEBUG
+
+  BankerBotLexBot:
+    Condition: ShouldDeploySampleBots
+    Type: Custom::LexBot
+    Properties:
+      ServiceToken: !GetAtt LexV2CfnCr.Outputs.LexV2CfnCrFunctionArn
+      botName: !Sub "${AWS::StackName}-BankerBot"
+      dataPrivacy:
+        childDirected: false
+      description: Example Banker bot to demonstrate Lex V2 capabilities
+      idleSessionTTLInSeconds: 300
+      roleArn: !GetAtt LexV2CfnCr.Outputs.LexServiceLinkedRole
+      CR.botLocales:
+        - localeId: en_US
+          nluIntentConfidenceThreshold: 0.40
+          voiceSettings:
+            voiceId: Ivy
+          CR.slotTypes:
+            - slotTypeName: accountType
+              valueSelectionSetting:
+                resolutionStrategy: TopResolution
+              slotTypeValues:
+                - sampleValue:
+                    value: Checking
+                - sampleValue:
+                    value: Savings
+                - sampleValue:
+                    value: Credit
+                  synonyms:
+                    - value: credit card
+                    - value: visa
+                    - value: mastercard
+                    - value: amex
+                    - value: american express
+          CR.intents:
+            - intentName: FallbackIntent
+              description: Default fallback intent when no other intent matches
+              intentClosingSetting:
+                closingResponse:
+                  messageGroups:
+                    - message:
+                        plainTextMessage:
+                          value: >-
+                            Sorry I am having trouble understanding.
+                            Can you describe what you'd like to do in a few
+                            words? I can help you find your account balance,
+                            transfer funds and make a payment.
+            - intentName: Welcome
+              description: Welcome intent
+              sampleUtterances:
+                - utterance: Hi
+                - utterance: Hello
+                - utterance: I need help
+                - utterance: Can you help me?
+              intentClosingSetting:
+                closingResponse:
+                  messageGroups:
+                    - message:
+                        plainTextMessage:
+                          value: >-
+                            Hi! I'm BB, the Banking Bot. How can I help you
+                            today?
+            - intentName: CheckBalance
+              description:
+                Intent to check the balance in the specified account type
+              sampleUtterances:
+                - utterance: What’s the balance in my account ?
+                - utterance: Check my account balance
+                - utterance: What’s the balance in my {accountType} account ?
+                - utterance: How much do I have in {accountType} ?
+                - utterance: I want to check the balance
+                - utterance: Can you help me with account balance ?
+                - utterance: Balance in {accountType}
+              fulfillmentCodeHook:
+                enabled: true
+              outputContexts:
+                - name: contextCheckBalance
+                  timeToLiveInSeconds: 90
+                  turnsToLive: 5
+              CR.slots:
+                - slotName: accountType
+                  CR.slotTypeName: accountType
+                  valueElicitationSetting:
+                    slotConstraint: Required
+                    promptSpecification:
+                      messageGroups:
+                        - message:
+                            plainTextMessage:
+                              value:
+                                For which account would you like your balance?
+                      maxRetries: 2
+                - slotName: dateOfBirth
+                  CR.slotTypeName: AMAZON.Date
+                  valueElicitationSetting:
+                    slotConstraint: Required
+                    promptSpecification:
+                      messageGroups:
+                        - message:
+                            plainTextMessage:
+                              value: >-
+                                For verification purposes, what is your date of
+                                birth?
+                      maxRetries: 2
+            - intentName: FollowupCheckBalance
+              description: >-
+                Intent to allow a follow-up balance check request without
+                authentication
+              sampleUtterances:
+                - utterance: How about my {accountType} account
+                - utterance: What about {accountType}
+                - utterance: And in {accountType} ?
+              fulfillmentCodeHook:
+                enabled: true
+              inputContexts:
+                - name: contextCheckBalance
+              CR.slots:
+                - slotName: accountType
+                  CR.slotTypeName: accountType
+                  valueElicitationSetting:
+                    slotConstraint: Required
+                    promptSpecification:
+                      messageGroups:
+                        - message:
+                            plainTextMessage:
+                              value:
+                                For which account would you like your balance?
+                      maxRetries: 2
+                - slotName: dateOfBirth
+                  CR.slotTypeName: AMAZON.Date
+                  valueElicitationSetting:
+                    slotConstraint: Required
+                    promptSpecification:
+                      messageGroups:
+                        - message:
+                            plainTextMessage:
+                              value: >-
+                                For verification purposes, what is your date of
+                                birth?
+                      maxRetries: 2
+                    defaultValueSpecification:
+                      defaultValueList:
+                        - defaultValue: '#contextCheckBalance.dateOfBirth'
+            - intentName: TransferFunds
+              description: Help user transfer funds between bank accounts
+              sampleUtterances:
+                - utterance: I want to transfer funds
+                - utterance: Can I make a transfer?
+                - utterance: I want to make a transfer
+                - utterance: >-
+                    I'd like to transfer {transferAmount} from
+                    {sourceAccountType} to {targetAccountType}
+                - utterance: >-
+                    Can I transfer {transferAmount} to my {targetAccountType}
+                - utterance: Would you be able to help me with a transfer?
+                - utterance: Need to make a transfer
+              fulfillmentCodeHook:
+                enabled: false
+              intentConfirmationSetting:
+                declinationResponse:
+                  messageGroups:
+                    - message:
+                        plainTextMessage:
+                          value: The transfer has been cancelled
+                promptSpecification:
+                  messageGroups:
+                    - message:
+                        plainTextMessage:
+                          value: >-
+                            Got it. So we are transferring {transferAmount} from
+                            {sourceAccountType} to {targetAccountType}.
+                            Can I go ahead with the transfer?
+                  maxRetries: 2
+              intentClosingSetting:
+                closingResponse:
+                  messageGroups:
+                    - message:
+                        plainTextMessage:
+                          value: >-
+                            The transfer is complete. {transferAmount} should
+                            now be available in your {targetAccountType}
+                            account.
+              CR.slots:
+                - slotName: sourceAccountType
+                  CR.slotTypeName: accountType
+                  valueElicitationSetting:
+                    slotConstraint: Required
+                    promptSpecification:
+                      messageGroups:
+                        - message:
+                            plainTextMessage:
+                              value:
+                                Which account would you like to transfer from?
+                      maxRetries: 2
+                - slotName: targetAccountType
+                  CR.slotTypeName: accountType
+                  valueElicitationSetting:
+                    slotConstraint: Required
+                    promptSpecification:
+                      messageGroups:
+                        - message:
+                            plainTextMessage:
+                              value: Which account are you transferring to?
+                      maxRetries: 2
+                - slotName: transferAmount
+                  CR.slotTypeName: AMAZON.Number
+                  valueElicitationSetting:
+                    slotConstraint: Required
+                    promptSpecification:
+                      messageGroups:
+                        - message:
+                            plainTextMessage:
+                              value: How much money would you like to transfer?
+                      maxRetries: 2
+
+  BankerBotLexBotVersion:
+    Condition: ShouldDeploySampleBots
+    # Bot versions are deleted by the Bot on Stack Deletions
+    DeletionPolicy: Retain
+    # Version number changes between updates which cause a CloudFormation
+    # delete event since the version number is the physical resource ID.
+    # The following policies prevents deletion events
+    UpdateReplacePolicy: Retain
+    Type: Custom::LexBotVersion
+    Properties:
+      ServiceToken: !GetAtt LexV2CfnCr.Outputs.LexV2CfnCrFunctionArn
+      botId: !Ref BankerBotLexBot
+      # botVersionLocaleSpecification is derived from the bot locales
+      CR.botLocaleIds: !GetAtt BankerBotLexBot.botLocaleIds
+      CR.lastUpdatedDateTime: !GetAtt BankerBotLexBot.lastUpdatedDateTime
+
+  BankerBotLexBotAlias:
+    Condition: ShouldDeploySampleBots
+    # Alias is deleted by the Bot on Stack Deletions
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Type: Custom::LexBotAlias
+    Properties:
+      ServiceToken: !GetAtt LexV2CfnCr.Outputs.LexV2CfnCrFunctionArn
+      botId: !Ref BankerBotLexBot
+      botAliasName: live
+      botVersion: !Ref BankerBotLexBotVersion
+      botAliasLocaleSettings:
+        en_US:
+          enabled: true
+          # Lambda Code Hook
+          codeHookSpecification:
+            lambdaCodeHook:
+              lambdaARN: !GetAtt BankerBotLexBotFunction.Arn
+              codeHookInterfaceVersion: "1.0"
+      conversationLogSettings:
+        # Text Conversation Logs to CloudWatch
+        textLogSettings:
+          - enabled: true
+            destination:
+              cloudWatch:
+                cloudWatchLogGroupArn:
+                  !If
+                  - ShouldCreateLogGroup
+                  - !GetAtt LexBotConversationLogs.Arn
+                  - !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:\
+                          ${AWS::AccountId}:log-group:\
+                          ${LexConversationLogGroupName}:*"
+                logPrefix:
+                  !Sub "aws/lex/${BankerBotLexBot}/${BankerBotLexBotVersion}/"
+      sentimentAnalysisSettings:
+        detectSentiment: true
+
+  ##########################################################################
+  # Sampmle Bot Lambda Functions
+  ##########################################################################
+  BankerBotLexBotFunction:
+    Condition: ShouldDeploySampleBots
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/lambda_functions/banker_bot
+      Description: >-
+        Lex Banker Bot Fulfillment Function
+      Handler: lambda_function.lambda_handler
+      MemorySize: 128
+      Runtime: python3.8
+      Timeout: 3
+
+  # Add resource policy to allow the Lex Bot Alias to invoke it
+  BankerBotLexBotFunctionPermission:
+    Condition: ShouldDeploySampleBots
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt BankerBotLexBotFunction.Arn
+      Principal: lexv2.amazonaws.com
+      SourceArn:
+        !Sub "arn:${AWS::Partition}:lex:${AWS::Region}:${AWS::AccountId}:\
+              bot-alias/${BankerBotLexBot}/${BankerBotLexBotAlias}"
+
+  BotTesterFunction:
+    Condition: ShouldDeploySampleBots
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/lambda_functions/bot_tester
+      Description: Bot Tester Function
+      Handler: .lambda_function.handler
+      MemorySize: 128
+      Runtime: python3.8
+      Timeout: 30
+      Policies:
+        - Statement:
+            - Sid: LexRuntime
+              Effect: Allow
+              Action:
+                - lex:RecognizeText
+                - lex:RecognizeUtterance
+              Resource: '*'
+      Events:
+        RunTestScheduledEvent:
+          Type: Schedule
+          Properties:
+            Schedule: rate(2 minutes)
+      Environment:
+        Variables:
+          BOTS_CONFIG_JSON:
+            !Sub
+            -
+              >-
+              {
+                "BankerBot": {
+                  "botId": "${BankerBotLexBot}",
+                  "botAliasId": "${BankerBotLexBotAlias}",
+                  "localeIds": "${BankerBotLocaleIds}"
+                }
+              }
+            - BankerBotLexBot: !Ref BankerBotLexBot
+              BankerBotLexBotAlias: !Ref BankerBotLexBotAlias
+              BankerBotLocaleIds:
+                !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
+
+Outputs:
+  LexBotConversationLogs:
+    Description: CloudWatch Log Group Name for Lex Conversation Logs
+    Value:
+      !If
+      - ShouldCreateLogGroup
+      - !Ref LexBotConversationLogs
+      - !Ref LexConversationLogGroupName
+
+  DashboardConsoleLink:
+    Description: Link to the CloudWatch Dashboard
+    Value:
+      !Sub "https://console.aws.amazon.com/cloudwatch/home?region=\
+            ${AWS::Region}#dashboards:name=${LexAnalyticsCWLDashboard}"
+
+  BankerBotLexBotId:
+    Condition: ShouldDeploySampleBots
+    Description: Banker Bot Lex Bot ID
+    Value: !Ref BankerBotLexBot
+
+  BankerBotLexBotLocaleIds:
+    Condition: ShouldDeploySampleBots
+    Description: Banker Bot Lex Bot Locale IDs
+    Value: !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
+
+  BankerBotLexBotLatestVersion:
+    Condition: ShouldDeploySampleBots
+    Description: Banker Bot Latest Lex Bot Version ID
+    Value: !Ref BankerBotLexBotVersion
+
+  BankerBotLexBotAliasId:
+    Condition: ShouldDeploySampleBots
+    Description: Banker Bot Lex Bot Alias ID
+    Value: !Ref BankerBotLexBotAlias

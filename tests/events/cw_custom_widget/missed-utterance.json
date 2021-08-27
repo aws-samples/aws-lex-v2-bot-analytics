@@ -1,0 +1,41 @@
+{
+    "logGroups": "lex-analytics-oatoa-conversation-logs",
+    "botId": "IJE04MZEZ3",
+    "botLocaleId": "en_US",
+    "widgetType": "missedUtterance",
+    "query": "filter missedUtterance = 1 | stats count(*) as @count by inputTranscript as @missed_utterance | sort @count desc",
+    "widgetContext": {
+        "dashboardName": "lex-analytics-oatoa-Conversation-Analytics",
+        "widgetId": "widget-90",
+        "domain": "https://console.aws.amazon.com",
+        "accountId": "531380608753",
+        "locale": "en",
+        "timezone": {
+            "label": "Local",
+            "offsetISO": "-04:00",
+            "offsetInMinutes": 240
+        },
+        "period": 300,
+        "isAutoPeriod": true,
+        "timeRange": {
+            "mode": "absolute",
+            "start": 1628164818767,
+            "end": 1628179218767
+        },
+        "theme": "light",
+        "linkCharts": true,
+        "title": "Session count heatmap per 2 hour block each day of the week",
+        "params": {
+            "logGroups": "lex-analytics-oatoa-conversation-logs",
+            "botId": "IJE04MZEZ3",
+            "botLocaleId": "en_US",
+            "widgetType": "missedUtterance",
+            "query": "filter missedUtterance = 1 | stats count(*) as @count by inputTranscript as @missed_utterance | sort @count desc"
+        },
+        "forms": {
+            "all": {}
+        },
+        "width": 791,
+        "height": 696
+    }
+}
