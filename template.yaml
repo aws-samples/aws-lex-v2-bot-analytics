@@ -628,7 +628,10 @@ Resources:
           {
             "AggregateOn": "Count",
             "Contribution": {
-              "Filters": [],
+              "Filters": [
+                { "Match": "$.bot.id", "In": ["${BotId}"] },
+                { "Match": "$.bot.localeId", "In": ["${BotLocaleId}"] }
+              ],
               "Keys": [
                 "$.sessionId"
               ]
@@ -642,7 +645,21 @@ Resources:
               "Version": 1
             }
           }
-        - LogGroupName:
+        - BotId:
+            !If
+            - ShouldDeploySampleBots
+            - !Ref BankerBotLexBot
+            - !Ref BotId
+          BotLocaleId:
+            !If
+            - ShouldDeploySampleBots
+            - Fn::Select:
+                - 0
+                - Fn::Split:
+                    - ','
+                    - !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
+            - !Ref BotLocaleId
+          LogGroupName:
             !If
             - ShouldCreateLogGroup
             - !Ref LexBotConversationLogs
@@ -659,7 +676,10 @@ Resources:
           {
             "AggregateOn": "Count",
             "Contribution": {
-              "Filters": [],
+              "Filters": [
+                { "Match": "$.bot.id", "In": ["${BotId}"] },
+                { "Match": "$.bot.localeId", "In": ["${BotLocaleId}"] }
+              ],
               "Keys": [
                 "$.inputTranscript"
               ]
@@ -673,7 +693,21 @@ Resources:
               "Version": 1
             }
           }
-        - LogGroupName:
+        - BotId:
+            !If
+            - ShouldDeploySampleBots
+            - !Ref BankerBotLexBot
+            - !Ref BotId
+          BotLocaleId:
+            !If
+            - ShouldDeploySampleBots
+            - Fn::Select:
+                - 0
+                - Fn::Split:
+                    - ','
+                    - !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
+            - !Ref BotLocaleId
+          LogGroupName:
             !If
             - ShouldCreateLogGroup
             - !Ref LexBotConversationLogs
