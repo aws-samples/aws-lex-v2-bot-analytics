@@ -734,6 +734,53 @@ Resources:
                 }
               },
               {
+                "height": 3,
+                "width": 18,
+                "y": 0,
+                "x": 0,
+                "type": "metric",
+                "properties": {
+                  "metrics": [
+                    [ { "expression": "SUM(e1)", "label": "Messages", "id": "e2" } ],
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}/${BotLocaleId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\"', 'Sum', 300)", "label": "MissedUtterance", "id": "e3" } ],
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}/${BotLocaleId}, BotAliasName, BotVersion, Intent} MetricName=\"CountMessages\"', 'SampleCount', 300)", "label": "SearchCountMessages", "id": "e1", "visible": false } ]
+                  ],
+                  "region": "${AWS::Region}",
+                  "view": "singleValue",
+                  "stacked": false,
+                  "setPeriodToTimeRange": true,
+                  "stat": "Average",
+                  "period": 60,
+                  "title": "Overview"
+                }
+              },
+              {
+                "height": 6,
+                "width": 9,
+                "y": 4,
+                "x": 0,
+                "type": "metric",
+                "properties": {
+                  "metrics": [
+                    [ { "expression": "INSIGHT_RULE_METRIC('${SessionIdContributorInsight.RuleName}', 'UniqueContributors')", "label": "SessionID", "id": "e0", "period": 300 } ]
+                  ],
+                  "region": "${AWS::Region}",
+                  "view": "timeSeries",
+                  "stacked": false,
+                  "stat": "Average",
+                  "yAxis": {
+                    "left": {
+                      "showUnits": false,
+                      "min": 0
+                    }
+                  },
+                  "legend": {
+                    "position": "bottom"
+                  },
+                  "title": "Sessions"
+                }
+              },
+              {
                 "height": 6,
                 "width": 9,
                 "y": 4,
@@ -756,6 +803,20 @@ Resources:
                   "period": 300,
                   "setPeriodToTimeRange": true,
                   "title": "Messages"
+                }
+              },
+              {
+                "height": 6,
+                "width": 9,
+                "y": 10,
+                "x": 0,
+                "type": "log",
+                "properties": {
+                  "query": "SOURCE '${LogGroupName}' | FIELDS @message | FILTER bot.id = '${BotId}' AND bot.localeId = '${BotLocaleId}' | STATS COUNT(*) AS Count_ BY interpretations.0.sentimentResponse.sentiment AS Sentiment",
+                  "region": "${AWS::Region}",
+                  "title": "Sentiment Analysis",
+                  "setPeriodToTimeRange": true,
+                  "view": "bar"
                 }
               },
               {
@@ -817,113 +878,6 @@ Resources:
                 "type": "text",
                 "properties": {
                   "markdown": "# Missed Utterances"
-                }
-              },
-              {
-                "height": 6,
-                "width": 6,
-                "y": 30,
-                "x": 0,
-                "type": "metric",
-                "properties": {
-                  "metrics": [
-                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}/${BotLocaleId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\" ', 'Sum', 259200)" } ]
-                  ],
-                  "view": "bar",
-                  "stacked": false,
-                  "region": "${AWS::Region}",
-                  "setPeriodToTimeRange": true,
-                  "stat": "Sum",
-                  "period": 300,
-                  "title": "MissedUtterance for Intents "
-                }
-              },
-              {
-                "height": 6,
-                "width": 6,
-                "y": 30,
-                "x": 6,
-                "type": "metric",
-                "properties": {
-                  "view": "pie",
-                  "stacked": false,
-                  "metrics": [
-                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}/${BotLocaleId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\" ', 'Sum', 259200)" } ]
-                  ],
-                  "region": "${AWS::Region}",
-                  "setPeriodToTimeRange": true,
-                  "title": "% MissedUtterance for Intents"
-                }
-              },
-              {
-                "height": 6,
-                "width": 6,
-                "y": 30,
-                "x": 12,
-                "type": "log",
-                "properties": {
-                  "query": "SOURCE '${LogGroupName}' | FIELDS @message | FILTER bot.id = '${BotId}' AND bot.localeId = '${BotLocaleId}' AND missedUtterance = 1 | DISPLAY inputTranscript",
-                  "region": "${AWS::Region}",
-                  "stacked": false,
-                  "title": "Missed Utterances History",
-                  "view": "table"
-                }
-              },
-              {
-                "height": 1,
-                "width": 18,
-                "y": 50,
-                "x": 0,
-                "type": "text",
-                "properties": {
-                  "markdown": "# Conversation History"
-                }
-              },
-              {
-                "type": "metric",
-                "x": 0,
-                "y": 51,
-                "width": 18,
-                "height": 6,
-                "properties": {
-                  "period": 60,
-                  "region": "${AWS::Region}",
-                  "stacked": false,
-                  "timezone": "local",
-                  "title": "Top 10 Messages",
-                  "view": "timeSeries",
-                  "insightRule": {
-                    "maxContributorCount": 10,
-                    "orderBy": "Sum",
-                    "ruleName": "${MessageContributorInsight.RuleName}"
-                  },
-                  "legend": {
-                    "position": "right"
-                  }
-                }
-              },
-              {
-                "height": 6,
-                "width": 18,
-                "y": 51,
-                "x": 0,
-                "type": "log",
-                "properties": {
-                  "query": "SOURCE '${LogGroupName}' | FIELDS @message | FILTER bot.id = '${BotId}' AND bot.localeId = '${BotLocaleId}' | DISPLAY sessionId, timestamp, inputTranscript",
-                  "region": "${AWS::Region}",
-                  "stacked": false,
-                  "title": "Message History",
-                  "view": "table"
-                }
-              },
-              {
-                "height": 1,
-                "width": 18,
-                "y": 37,
-                "x": 0,
-                "type": "text",
-                "properties": {
-                  "markdown": "# Conversation"
                 }
               },
               {
@@ -997,42 +951,91 @@ Resources:
               },
               {
                 "height": 6,
-                "width": 9,
-                "y": 4,
+                "width": 6,
+                "y": 30,
                 "x": 0,
                 "type": "metric",
                 "properties": {
                   "metrics": [
-                    [ { "expression": "INSIGHT_RULE_METRIC('${SessionIdContributorInsight.RuleName}', 'UniqueContributors')", "label": "SessionID", "id": "e0", "period": 300 } ]
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}/${BotLocaleId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\" ', 'Sum', 259200)" } ]
+                  ],
+                  "view": "bar",
+                  "stacked": false,
+                  "region": "${AWS::Region}",
+                  "setPeriodToTimeRange": true,
+                  "stat": "Sum",
+                  "period": 300,
+                  "title": "MissedUtterance for Intents "
+                }
+              },
+              {
+                "height": 6,
+                "width": 6,
+                "y": 30,
+                "x": 6,
+                "type": "metric",
+                "properties": {
+                  "view": "pie",
+                  "stacked": false,
+                  "metrics": [
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}/${BotLocaleId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\" ', 'Sum', 259200)" } ]
+                  ],
+                  "region": "${AWS::Region}",
+                  "setPeriodToTimeRange": true,
+                  "title": "% MissedUtterance for Intents"
+                }
+              },
+              {
+                "height": 6,
+                "width": 6,
+                "y": 30,
+                "x": 12,
+                "type": "log",
+                "properties": {
+                  "query": "SOURCE '${LogGroupName}' | FIELDS @message | FILTER bot.id = '${BotId}' AND bot.localeId = '${BotLocaleId}' AND missedUtterance = 1 | DISPLAY inputTranscript",
+                  "region": "${AWS::Region}",
+                  "stacked": false,
+                  "title": "Missed Utterances History",
+                  "view": "table"
+                }
+              },
+              {
+                "height": 1,
+                "width": 18,
+                "y": 37,
+                "x": 0,
+                "type": "text",
+                "properties": {
+                  "markdown": "# Conversation"
+                }
+              },
+              {
+                "height": 6,
+                "width": 18,
+                "y": 38,
+                "x": 0,
+                "type": "metric",
+                "properties": {
+                  "metrics": [
+                    [ { "expression": "INSIGHT_RULE_METRIC('${SessionIdContributorInsight.RuleName}', 'UniqueContributors')", "label": "SessionID Sum", "id": "e0", "period": 300, "visible": false } ],
+                    [ { "expression": "300/e0", "label": "Average Session Duration (in seconds)", "id": "e1" } ]
                   ],
                   "region": "${AWS::Region}",
                   "view": "timeSeries",
                   "stacked": false,
                   "stat": "Average",
+                  "period": 300,
+                  "title": "Average Session Duration (in seconds)",
                   "yAxis": {
                     "left": {
                       "showUnits": false,
-                      "min": 0
+                      "min": 0,
+                      "label": "Seconds"
+                    },
+                    "right": {
+                      "showUnits": false
                     }
-                  },
-                  "legend": {
-                    "position": "bottom"
-                  },
-                  "title": "Sessions"
-                }
-              },
-              {
-                "height": 6,
-                "width": 9,
-                "y": 10,
-                "x": 0,
-                "type": "log",
-                "properties": {
-                  "query": "SOURCE '${LogGroupName}' | FIELDS @message | FILTER bot.id = '${BotId}' AND bot.localeId = '${BotLocaleId}' | STATS COUNT(*) AS Count_ BY interpretations.0.sentimentResponse.sentiment AS Sentiment",
-                  "region": "${AWS::Region}",
-                  "title": "Sentiment Analysis",
-                  "setPeriodToTimeRange": true,
-                  "view": "bar"
+                  }
                 }
               },
               {
@@ -1090,53 +1093,50 @@ Resources:
                 }
               },
               {
-                "height": 6,
+                "height": 1,
                 "width": 18,
-                "y": 38,
+                "y": 50,
                 "x": 0,
-                "type": "metric",
+                "type": "text",
                 "properties": {
-                  "metrics": [
-                    [ { "expression": "INSIGHT_RULE_METRIC('${SessionIdContributorInsight.RuleName}', 'UniqueContributors')", "label": "SessionID Sum", "id": "e0", "period": 300, "visible": false } ],
-                    [ { "expression": "300/e0", "label": "Average Session Duration (in seconds)", "id": "e1" } ]
-                  ],
+                  "markdown": "# Conversation History"
+                }
+              },
+              {
+                "type": "metric",
+                "x": 0,
+                "y": 51,
+                "width": 18,
+                "height": 6,
+                "properties": {
+                  "period": 60,
                   "region": "${AWS::Region}",
-                  "view": "timeSeries",
                   "stacked": false,
-                  "stat": "Average",
-                  "period": 300,
-                  "title": "Average Session Duration (in seconds)",
-                  "yAxis": {
-                    "left": {
-                      "showUnits": false,
-                      "min": 0,
-                      "label": "Seconds"
-                    },
-                    "right": {
-                      "showUnits": false
-                    }
+                  "timezone": "local",
+                  "title": "Top 10 Messages",
+                  "view": "timeSeries",
+                  "insightRule": {
+                    "maxContributorCount": 10,
+                    "orderBy": "Sum",
+                    "ruleName": "${MessageContributorInsight.RuleName}"
+                  },
+                  "legend": {
+                    "position": "right"
                   }
                 }
               },
               {
-                "height": 3,
+                "height": 6,
                 "width": 18,
-                "y": 0,
+                "y": 51,
                 "x": 0,
-                "type": "metric",
+                "type": "log",
                 "properties": {
-                  "metrics": [
-                    [ { "expression": "SUM(e1)", "label": "Messages", "id": "e2" } ],
-                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}/${BotLocaleId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\"', 'Sum', 300)", "label": "MissedUtterance", "id": "e3" } ],
-                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}/${BotLocaleId}, BotAliasName, BotVersion, Intent} MetricName=\"CountMessages\"', 'SampleCount', 300)", "label": "SearchCountMessages", "id": "e1", "visible": false } ]
-                  ],
+                  "query": "SOURCE '${LogGroupName}' | FIELDS @message | FILTER bot.id = '${BotId}' AND bot.localeId = '${BotLocaleId}' | DISPLAY sessionId, timestamp, inputTranscript",
                   "region": "${AWS::Region}",
-                  "view": "singleValue",
                   "stacked": false,
-                  "setPeriodToTimeRange": true,
-                  "stat": "Average",
-                  "period": 60,
-                  "title": "Overview"
+                  "title": "Message History",
+                  "view": "table"
                 }
               },
               {
