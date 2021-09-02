@@ -862,7 +862,7 @@ Resources:
                 "x": 12,
                 "type": "log",
                 "properties": {
-                  "query": "SOURCE '${LogGroupName}' | FIELDS @message | filter missedUtterance = 1 | display inputTranscript",
+                  "query": "SOURCE '${LogGroupName}' | FIELDS @message | FILTER bot.id = '${BotId}' AND bot.localeId = '${BotLocaleId}' AND missedUtterance = 1 | DISPLAY inputTranscript",
                   "region": "${AWS::Region}",
                   "stacked": false,
                   "title": "Missed Utterances History",
@@ -909,7 +909,7 @@ Resources:
                 "x": 0,
                 "type": "log",
                 "properties": {
-                  "query": "SOURCE '${LogGroupName}' | FIELDS @message | display sessionId, timestamp, inputTranscript",
+                  "query": "SOURCE '${LogGroupName}' | FIELDS @message | FILTER bot.id = '${BotId}' AND bot.localeId = '${BotLocaleId}' | DISPLAY sessionId, timestamp, inputTranscript",
                   "region": "${AWS::Region}",
                   "stacked": false,
                   "title": "Message History",
@@ -1028,7 +1028,7 @@ Resources:
                 "x": 0,
                 "type": "log",
                 "properties": {
-                  "query": "SOURCE '${LogGroupName}' | FIELDS @message | stats count(*) as Count_ by interpretations.0.sentimentResponse.sentiment as Sentiment",
+                  "query": "SOURCE '${LogGroupName}' | FIELDS @message | FILTER bot.id = '${BotId}' AND bot.localeId = '${BotLocaleId}' | STATS COUNT(*) AS Count_ BY interpretations.0.sentimentResponse.sentiment AS Sentiment",
                   "region": "${AWS::Region}",
                   "title": "Sentiment Analysis",
                   "setPeriodToTimeRange": true,
@@ -1151,7 +1151,7 @@ Resources:
                     "botId": "${BotId}",
                     "botLocaleId": "${BotLocaleId}",
                     "widgetType": "heatmapSessionHourOfDay",
-                    "query": "stats count(sessionId) as @count by bin(2h) as @t"
+                    "query": "FILTER bot.id = '${BotId}' AND bot.localeId = '${BotLocaleId}' | STATS COUNT(sessionId) AS @count BY BIN(2h) AS @t"
                   },
                   "updateOn": {
                     "refresh": true,
@@ -1171,7 +1171,7 @@ Resources:
                     "botId": "${BotId}",
                     "botLocaleId": "${BotLocaleId}",
                     "widgetType": "heatmapIntentPerHour",
-                    "query": "fields sessionState.intent.name as @intent | stats count(*) as @count by bin(1h) as @t, @intent"
+                    "query": "FILTER bot.id = '${BotId}' AND bot.localeId = '${BotLocaleId}' | FIELDS sessionState.intent.name AS @intent | STATS COUNT(*) AS @count BY BIN(1h) AS @t, @intent"
                   },
                   "updateOn": {
                     "refresh": true,
@@ -1191,7 +1191,7 @@ Resources:
                     "botId": "${BotId}",
                     "botLocaleId": "${BotLocaleId}",
                     "widgetType": "conversationPath",
-                    "query": "filter sessionState.intent.state = 'Fulfilled' | stats count(*) as count by sessionId as @sessionId, sessionState.intent.name as @intentName, bin(5s) as @period | sort @period asc"
+                    "query": "FILTER bot.id = '${BotId}' AND bot.localeId = '${BotLocaleId}' | FILTER sessionState.intent.state = 'Fulfilled' | STATS COUNT(*) AS count BY sessionId AS @sessionId, sessionState.intent.name AS @intentName, BIN(5s) AS @period | SORT @period ASC"
                   },
                   "updateOn": {
                     "refresh": true,
@@ -1238,7 +1238,7 @@ Resources:
                       "botId": "${BotId}",
                       "botLocaleId": "${BotLocaleId}",
                       "widgetType": "missedUtterance",
-                      "query": "filter missedUtterance = 1 | stats count(*) as @count by inputTranscript as @missed_utterance | sort by count desc"
+                      "query": "FILTER bot.id = '${BotId}' AND bot.localeId = '${BotLocaleId}' | FILTER missedUtterance = 1 | STATS COUNT(*) AS @count BY inputTranscript AS @missed_utterance | SORT BY count DESC"
                     },
                     "updateOn": {
                       "refresh": true,
