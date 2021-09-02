@@ -382,12 +382,21 @@ Resources:
           MetricNamespace:
             !Sub
             - >-
-              Lex/Activity/${BotId}
+              Lex/Activity/${BotId}/${BotLocaleId}
             - BotId:
                 !If
                 - ShouldDeploySampleBots
                 - !Ref BankerBotLexBot
                 - !Ref BotId
+              BotLocaleId:
+                !If
+                - ShouldDeploySampleBots
+                - Fn::Select:
+                    - 0
+                    - Fn::Split:
+                        - ','
+                        - !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
+                - !Ref BotLocaleId
 
   CountMessagesMetricFilterDimension:
     Type: Custom::MetricFilterDimension
@@ -404,12 +413,21 @@ Resources:
           MetricNamespace:
             !Sub
             - >-
-              Lex/Activity/${BotId}
+              Lex/Activity/${BotId}/${BotLocaleId}
             - BotId:
                 !If
                 - ShouldDeploySampleBots
                 - !Ref BankerBotLexBot
                 - !Ref BotId
+              BotLocaleId:
+                !If
+                - ShouldDeploySampleBots
+                - Fn::Select:
+                    - 0
+                    - Fn::Split:
+                        - ','
+                        - !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
+                - !Ref BotLocaleId
           Dimensions:
             BotVersion: >-
               $.bot.version
@@ -455,12 +473,21 @@ Resources:
           MetricNamespace:
             !Sub
             - >-
-              Lex/Activity/${BotId}
+              Lex/Activity/${BotId}/${BotLocaleId}
             - BotId:
                 !If
                 - ShouldDeploySampleBots
                 - !Ref BankerBotLexBot
                 - !Ref BotId
+              BotLocaleId:
+                !If
+                - ShouldDeploySampleBots
+                - Fn::Select:
+                    - 0
+                    - Fn::Split:
+                        - ','
+                        - !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
+                - !Ref BotLocaleId
 
   MissedUtteranceMetricFilterDimension:
     Type: Custom::MetricFilterDimension
@@ -477,12 +504,21 @@ Resources:
           MetricNamespace:
             !Sub
             - >-
-              Lex/Activity/${BotId}
+              Lex/Activity/${BotId}/${BotLocaleId}
             - BotId:
                 !If
                 - ShouldDeploySampleBots
                 - !Ref BankerBotLexBot
                 - !Ref BotId
+              BotLocaleId:
+                !If
+                - ShouldDeploySampleBots
+                - Fn::Select:
+                    - 0
+                    - Fn::Split:
+                        - ','
+                        - !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
+                - !Ref BotLocaleId
           Dimensions:
             BotVersion: >-
               $.bot.version
@@ -527,12 +563,21 @@ Resources:
           MetricNamespace:
             !Sub
             - >-
-              Lex/Activity/${BotId}
+              Lex/Activity/${BotId}/${BotLocaleId}
             - BotId:
                 !If
                 - ShouldDeploySampleBots
                 - !Ref BankerBotLexBot
                 - !Ref BotId
+              BotLocaleId:
+                !If
+                - ShouldDeploySampleBots
+                - Fn::Select:
+                    - 0
+                    - Fn::Split:
+                        - ','
+                        - !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
+                - !Ref BotLocaleId
 
   InputModeMetricFilterDimension:
     Type: Custom::MetricFilterDimension
@@ -549,12 +594,21 @@ Resources:
           MetricNamespace:
             !Sub
             - >-
-              Lex/Activity/${BotId}
+              Lex/Activity/${BotId}/${BotLocaleId}
             - BotId:
                 !If
                 - ShouldDeploySampleBots
                 - !Ref BankerBotLexBot
                 - !Ref BotId
+              BotLocaleId:
+                !If
+                - ShouldDeploySampleBots
+                - Fn::Select:
+                    - 0
+                    - Fn::Split:
+                        - ','
+                        - !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
+                - !Ref BotLocaleId
           Dimensions:
             BotVersion: >-
               $.bot.version
@@ -701,7 +755,7 @@ Resources:
                 "type": "metric",
                 "properties": {
                   "metrics": [
-                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, Intent} MetricName=\"CountMessages\"', 'Sum', 300)", "label": "", "id": "e1", "visible": false } ],
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}/${BotLocaleId}, BotAliasName, BotVersion, Intent} MetricName=\"CountMessages\"', 'Sum', 300)", "label": "", "id": "e1", "visible": false } ],
                     [ { "expression": "SUM(e1)", "label": "SumupMessages", "id": "e2" } ]
                   ],
                   "view": "timeSeries",
@@ -726,7 +780,7 @@ Resources:
                 "type": "metric",
                 "properties": {
                   "metrics": [
-                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, Intent} MetricName=\"CountMessages\" ', 'Sum', 259200)", "label": "", "id": "e1" } ]
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}/${BotLocaleId}, BotAliasName, BotVersion, Intent} MetricName=\"CountMessages\" ', 'Sum', 259200)", "label": "", "id": "e1" } ]
                   ],
                   "view": "bar",
                   "stacked": false,
@@ -755,7 +809,7 @@ Resources:
                 "type": "metric",
                 "properties": {
                  "metrics": [
-                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, inputModeDimension} MetricName=\"inputModeMetric\"', 'Sum', 259200)", "label": "", "id": "e1" } ]
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}/${BotLocaleId}, BotAliasName, BotVersion, inputModeDimension} MetricName=\"inputModeMetric\"', 'Sum', 259200)", "label": "", "id": "e1" } ]
                   ],
                   "view": "pie",
                   "stacked": false,
@@ -787,7 +841,7 @@ Resources:
                 "type": "metric",
                 "properties": {
                   "metrics": [
-                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\" ', 'Sum', 259200)" } ]
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}/${BotLocaleId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\" ', 'Sum', 259200)" } ]
                   ],
                   "view": "bar",
                   "stacked": false,
@@ -808,7 +862,7 @@ Resources:
                   "view": "pie",
                   "stacked": false,
                   "metrics": [
-                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\" ', 'Sum', 259200)" } ]
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}/${BotLocaleId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\" ', 'Sum', 259200)" } ]
                   ],
                   "region": "${AWS::Region}",
                   "setPeriodToTimeRange": true,
@@ -894,7 +948,7 @@ Resources:
                 "type": "metric",
                 "properties": {
                   "metrics": [
-                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\"', 'Sum', 300)", "label": "Expression1", "id": "e1", "visible": false } ],
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}/${BotLocaleId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\"', 'Sum', 300)", "label": "Expression1", "id": "e1", "visible": false } ],
                     [ { "expression": "SUM(e1)", "label": "Missed Utterances", "id": "e2", "period": 60 } ]
                   ],
                   "view": "timeSeries",
@@ -927,10 +981,10 @@ Resources:
                 "type": "metric",
                 "properties": {
                   "metrics": [
-                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, Intent} MetricName=\"CountMessages\"', 'SampleCount', 300)", "label": "SearchCountMessges", "id": "e1", "visible": false, "region": "${AWS::Region}" } ],
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}/${BotLocaleId}, BotAliasName, BotVersion, Intent} MetricName=\"CountMessages\"', 'SampleCount', 300)", "label": "SearchCountMessges", "id": "e1", "visible": false, "region": "${AWS::Region}" } ],
                     [ { "expression": "SUM(e1)", "label": "CountMessages", "id": "e2", "stat": "SampleCount", "visible": false, "region": "${AWS::Region}" } ],
                     [ { "expression": "100*(e4/e2)", "label": "PercentageOfIncomingMessages", "id": "e3", "yAxis": "left", "stat": "SampleCount", "region": "${AWS::Region}" } ],
-                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\"', 'Sum', 300)", "label": "SearchMissedUtterance", "id": "e4", "visible": false, "region": "${AWS::Region}" } ],
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}/${BotLocaleId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\"', 'Sum', 300)", "label": "SearchMissedUtterance", "id": "e4", "visible": false, "region": "${AWS::Region}" } ],
                     [ { "expression": "SUM(e4)", "label": "MissedUtterance", "id": "e5", "visible": false, "region": "${AWS::Region}" } ]
                   ],
                   "view": "timeSeries",
@@ -1027,7 +1081,7 @@ Resources:
                 "properties": {
                   "metrics": [
                     [ { "expression": "INSIGHT_RULE_METRIC('${SessionIdContributorInsight.RuleName}', 'UniqueContributors')", "label": "SessionID Sum", "id": "e0", "period": 300, "visible": false, "region": "${AWS::Region}" } ],
-                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, Intent} MetricName=\"CountMessages\"', 'Sum', 300)", "label": "SearchCountMessages", "id": "e1", "visible": false, "region": "${AWS::Region}" } ],
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}/${BotLocaleId}, BotAliasName, BotVersion, Intent} MetricName=\"CountMessages\"', 'Sum', 300)", "label": "SearchCountMessages", "id": "e1", "visible": false, "region": "${AWS::Region}" } ],
                     [ { "expression": "SUM(e1)", "label": "CountMessages", "id": "e2", "visible": false, "region": "${AWS::Region}" } ],
                     [ { "expression": "IF(e0 !=0, e2/e0, 0)", "label": "MessagesPerSessions", "id": "e3", "yAxis": "left", "region": "${AWS::Region}" } ]
                   ],
@@ -1088,8 +1142,8 @@ Resources:
                   "metrics": [
                     [ { "expression": "SUM(e1)", "label": "Messages", "id": "e2" } ],
                     [ { "expression": "INSIGHT_RULE_METRIC('${SessionIdContributorInsight.RuleName}', 'UniqueContributors')", "label": "Sessions", "id": "e0", "period": 60 } ],
-                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\"', 'Sum', 300)", "label": "MissedUtterance", "id": "e3" } ],
-                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}, BotAliasName, BotVersion, Intent} MetricName=\"CountMessages\"', 'SampleCount', 300)", "label": "SearchCountMessages", "id": "e1", "visible": false } ]
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}/${BotLocaleId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\"', 'Sum', 300)", "label": "MissedUtterance", "id": "e3" } ],
+                    [ { "expression": "SEARCH('{Lex/Activity/${BotId}/${BotLocaleId}, BotAliasName, BotVersion, Intent} MetricName=\"CountMessages\"', 'SampleCount', 300)", "label": "SearchCountMessages", "id": "e1", "visible": false } ]
                   ],
                   "region": "${AWS::Region}",
                   "view": "singleValue",
