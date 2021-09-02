@@ -1127,7 +1127,6 @@ Resources:
                 "properties": {
                   "metrics": [
                     [ { "expression": "SUM(e1)", "label": "Messages", "id": "e2" } ],
-                    [ { "expression": "INSIGHT_RULE_METRIC('${SessionIdContributorInsight.RuleName}', 'UniqueContributors')", "label": "Sessions", "id": "e0", "period": 60 } ],
                     [ { "expression": "SEARCH('{Lex/Activity/${BotId}/${BotLocaleId}, BotAliasName, BotVersion, Intent} MetricName=\"MissedUtterance\"', 'Sum', 300)", "label": "MissedUtterance", "id": "e3" } ],
                     [ { "expression": "SEARCH('{Lex/Activity/${BotId}/${BotLocaleId}, BotAliasName, BotVersion, Intent} MetricName=\"CountMessages\"', 'SampleCount', 300)", "label": "SearchCountMessages", "id": "e1", "visible": false } ]
                   ],
