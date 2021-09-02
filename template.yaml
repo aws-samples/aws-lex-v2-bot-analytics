@@ -620,23 +620,7 @@ Resources:
   SessionIdContributorInsight:
     Type: AWS::CloudWatch::InsightRule
     Properties:
-      RuleName:
-        !Sub
-        - "${ResourceName}-SessionId"
-        - BotId:
-            !If
-            - ShouldDeploySampleBots
-            - !Ref BankerBotLexBot
-            - !Ref BotId
-          BotLocaleId:
-            !If
-            - ShouldDeploySampleBots
-            - Fn::Select:
-                - 0
-                - Fn::Split:
-                    - ','
-                    - !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
-            - !Ref BotLocaleId
+      RuleName: !Sub "${ResourceName}-SessionId"
       RuleState: ENABLED
       RuleBody:
         !Sub
@@ -667,23 +651,7 @@ Resources:
   MessageContributorInsight:
     Type: AWS::CloudWatch::InsightRule
     Properties:
-      RuleName:
-        !Sub
-        - "${ResourceName}-Message"
-        - BotId:
-            !If
-            - ShouldDeploySampleBots
-            - !Ref BankerBotLexBot
-            - !Ref BotId
-          BotLocaleId:
-            !If
-            - ShouldDeploySampleBots
-            - Fn::Select:
-                - 0
-                - Fn::Split:
-                    - ','
-                    - !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
-            - !Ref BotLocaleId
+      RuleName: !Sub "${ResourceName}-Message"
       RuleState: ENABLED
       RuleBody:
         !Sub
@@ -714,23 +682,7 @@ Resources:
   LexAnalyticsCWLDashboard:
     Type: AWS::CloudWatch::Dashboard
     Properties:
-      DashboardName:
-        !Sub
-        - "Lex-Analytics-${ResourceName}"
-        - BotId:
-            !If
-            - ShouldDeploySampleBots
-            - !Ref BankerBotLexBot
-            - !Ref BotId
-          BotLocaleId:
-            !If
-            - ShouldDeploySampleBots
-            - Fn::Select:
-                - 0
-                - Fn::Split:
-                    - ','
-                    - !Join [",", !GetAtt BankerBotLexBot.botLocaleIds]
-            - !Ref BotLocaleId
+      DashboardName: !Sub "Lex-Analytics-${ResourceName}"
       DashboardBody:
         !Sub
         # yamllint disable rule:line-length
