@@ -130,6 +130,9 @@ function displaySankey({ data, widgetContext } = {}) {
 function displayConversationPath({ widgetContext, queryResults }) {
   // flatten CloudWatch Insights results into objects
   const results = queryResults.map((x) => x.reduce((a, c) => ({ [c.field]: c.value, ...a }), {}));
+  if (!results?.length) {
+    return '<pre class="error">No data found</pre>';
+  }
   const nodes = [
     ...new Set(results.map((x) => x['@intentName'])),
     // add artificial start intent to have a single entry point
