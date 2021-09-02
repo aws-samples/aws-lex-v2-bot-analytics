@@ -62,7 +62,7 @@ PYTHON_TARGET_REQUIREMENTS := $(patsubst \
 $(PYTHON_TARGET_REQUIREMENTS): $(OUT_DIR)/%: $(PYTHON_REQUIREMENTS_DIR)/% | $(OUT_DIR) $(VENV_CFG)
 	@echo "[INFO] Installing python dependencies file: [$(^)]"
 	@source '$(VIRTUALENV_BIN_DIR)/activate' && \
-		pip install -r $(^) | tee $(@)
+		pip install -U -r $(^) | tee $(@)
 install-python-requirements: $(PYTHON_TARGET_REQUIREMENTS)
 .PHONY: install-python-requirements
 
