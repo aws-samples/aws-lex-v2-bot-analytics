@@ -145,6 +145,25 @@ stack name and bot information (name, ID, locale).
 **NOTE:** You may need to wait a few minutes for data to be reflected in the
 dashboard.
 
+## Update Using SAR
+
+After you've deployed the dashboard from SAR, you may need to update it.
+For example, you may need to change an application setting, or you may want
+to update the application to the latest version that was published.
+
+You can use the same
+[link](https://console.aws.amazon.com/lambda/home#/create/app?applicationId=arn:aws:serverlessrepo:us-east-1:777566285978:applications/lexv2-analytics)
+used to deploy the stack to perform updates. Use the same procedure as
+deploying the application, and provide the same **Application name** that you
+originally used to deploy it.
+
+*NOTE:* SAR prepends `serverlessrepro-` to your stack name. However, to deploy a
+new version of your application, you should provide the original application
+name without the `serverlessrepo-` prefix.
+
+See the [SAR Updating Applications](https://docs.aws.amazon.com/serverlessrepo/latest/devguide/serverlessrepo-how-to-consume-new-version.html)
+documentation for details.
+
 ## Deploy Using SAM
 
 In addition to deploying the project using SAR as shown in the
