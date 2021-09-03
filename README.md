@@ -10,11 +10,12 @@ visualize the performance and operational metrics of your
 It provides a dashboard that you can use to continuously analyze and improve the
 experience of end-users interacting with your chatbot.
 
-This solution implements metrics and visualizations that helps you identify
-chatbot performance, trends and engagement insights. The solution extracts
+This solution implements metrics and visualizations that help you identify
+chatbot performance, trends and engagement insights. This is done by extracting
 operational data from your Lex V2 chatbot
 [conversation logs](https://docs.aws.amazon.com/lexv2/latest/dg/monitoring-logs.html).
-It presents a unified view of how users are interacting with your chatbot in an
+The solution presents a unified view of how users are interacting with your
+chatbot in an
 [Amazon CloudWatch dashboard](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch_Dashboards.html).
 
 Features include:
@@ -35,11 +36,11 @@ Features include:
 
 ### Architecture
 
-The solution architecture includes the following AWS Services:
+The solution architecture leverages the following AWS Services and features:
 
-- **CloudWatch Logs** containing your chatbot conversation logs
+- **CloudWatch Logs** to store your chatbot conversation logs
 - **CloudWatch Metric Filters** to create custom metrics from conversation logs
-- **CloudWatch Insights** to query the conversation logs and to create powerful
+- **CloudWatch Log Insights** to query the conversation logs and to create powerful
   aggregations from the log data
 - **CloudWatch Contributor Insights** to identify top contributors and
   outliers in higly variable data such as sessions and utterances
@@ -233,6 +234,10 @@ Here are more details about the general SAM parameters:
 
 - Pie and bar charts in the dashboard may show not show accurate data for the
   selected time range. We are currently investigating this issue
+- Metrics using CloudWatch Contributor Insights are limited to a 24 hour window
+  within the selected time range. The CloudWatch Contributor Insights feature
+  allows a maximum time range for the report is 24 hours, but you can choose a
+  24-hour window that occurred up to 15 days ago.
 
 ## Development
 
