@@ -4,6 +4,9 @@
 version=0.1
 [default.build.parameters]
 use_container = true
+parallel = true
+cached = true
+skip_pull_image = true
 
 [default.deploy.parameters]
 stack_name = "lex-analytics"
@@ -24,6 +27,9 @@ s3_prefix = "sam-artifacts/lex-analytics"
 
 [default.publish.parameters]
 region = "us-east-1"
+
+[publish-account.build.parameters]
+use_container = true
 
 [publish-account.package.parameters]
 s3_bucket = "lex-analytics-artifacts-777566285978-us-east-1"
