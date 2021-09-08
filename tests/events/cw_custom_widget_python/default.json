@@ -1,0 +1,41 @@
+{
+    "logGroups": "lex-analytics-oatoa-conversation-logs",
+    "botId": "IJE04MZEZ3",
+    "botLocaleId": "en_US",
+    "widgetType": "slotsTopN",
+    "query": "filter bot.id = 'IJE04MZEZ3' and bot.localeId = 'en_US'",
+    "widgetContext": {
+        "dashboardName": "lex-analytics-oatoa-Conversation-Analytics",
+        "widgetId": "widget-90",
+        "domain": "https://console.aws.amazon.com",
+        "accountId": "531380608753",
+        "locale": "en",
+        "timezone": {
+            "label": "Local",
+            "offsetISO": "-04:00",
+            "offsetInMinutes": 240
+        },
+        "period": 300,
+        "isAutoPeriod": true,
+        "timeRange": {
+            "mode": "absolute",
+            "start": 1628164818767,
+            "end": 1628179218767
+        },
+        "theme": "light",
+        "linkCharts": true,
+        "title": "Test",
+        "params": {
+            "logGroups": "lex-analytics-oatoa-conversation-logs",
+            "botId": "IJE04MZEZ3",
+            "botLocaleId": "en_US",
+            "widgetType": "slotsTopN",
+            "query": "filter bot.id = 'IJE04MZEZ3' and bot.localeId = 'en_US'"
+        },
+        "forms": {
+            "all": {}
+        },
+        "width": 791,
+        "height": 696
+    }
+}

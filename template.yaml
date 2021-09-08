@@ -274,14 +274,15 @@ Resources:
         Variables:
           LOG_LEVEL: !Ref LogLevel
 
-  SharedNodeJsLayer:
+  CwCustomWidgetNodeJsLayer:
     Type: AWS::Serverless::LayerVersion
     Metadata:
       BuildMethod: nodejs14.x
     Properties:
       Description:
-        !Sub "Lex Analytics shared Node.js layer for stack: ${AWS::StackName}"
-      ContentUri: ./src/lambda_layers/shared_nodejs
+        !Sub "Lex Analytics CloudWatch Custom Widget Node.js layer for \
+              stack: ${AWS::StackName}"
+      ContentUri: ./src/lambda_layers/cw_custom_widget_nodejs
       LayerName: !Sub "LexAnalyticsSharedNodeJs-${AWS::StackName}"
       CompatibleRuntimes:
         - nodejs14.x
@@ -299,7 +300,20 @@ Resources:
       CompatibleRuntimes:
         - python3.9
 
-  CwCustomWidgetFunction:
+  CwCustomWidgetPythonLayer:
+    Type: AWS::Serverless::LayerVersion
+    Metadata:
+      BuildMethod: python3.9
+    Properties:
+      Description:
+        !Sub "Lex Analytics CloudWatch Custom Widget Python layer for \
+              stack: ${AWS::StackName}"
+      ContentUri: ./src/lambda_layers/cw_custom_widget_python
+      LayerName: !Sub "CwCustomWidgetPythonLayer-${AWS::StackName}"
+      CompatibleRuntimes:
+        - python3.9
+
+  CwCustomWidgetNodeJsFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/lambda_functions/cw_custom_widget_nodejs
@@ -308,10 +322,26 @@ Resources:
       Handler: index.handler
       Runtime: nodejs14.x
       Layers:
-        - !Ref SharedNodeJsLayer
+        - !Ref CwCustomWidgetNodeJsLayer
       MemorySize: 512
       Role: !GetAtt CwCustomWidgetFunctionIamRole.Arn
       Timeout: 300
+
+  CwCustomWidgetPythonFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/lambda_functions/cw_custom_widget_python
+      Description: !Sub CloudWatch Custom Widget Python for ${AWS::StackName}
+      Handler: lambda_function.handler
+      MemorySize: 1024
+      Layers:
+        - !Ref CwCustomWidgetPythonLayer
+      Runtime: python3.9
+      Role: !GetAtt CwCustomWidgetFunctionIamRole.Arn
+      Timeout: 300
+      Environment:
+        Variables:
+          LOG_LEVEL: !Ref LogLevel
 
   ##########################################################################
   # Resource Name Custom Resource
@@ -1145,7 +1175,7 @@ Resources:
                 "width": 15,
                 "height": 15,
                 "properties": {
-                  "endpoint": "${CwCustomWidgetFunction.Arn}",
+                  "endpoint": "${CwCustomWidgetNodeJsFunction.Arn}",
                   "params": {
                     "logGroups": "${LogGroupName}",
                     "botId": "${BotId}",
@@ -1165,7 +1195,7 @@ Resources:
                 "width": 15,
                 "height": 15,
                 "properties": {
-                  "endpoint": "${CwCustomWidgetFunction.Arn}",
+                  "endpoint": "${CwCustomWidgetNodeJsFunction.Arn}",
                   "params": {
                     "logGroups": "${LogGroupName}",
                     "botId": "${BotId}",
@@ -1185,7 +1215,7 @@ Resources:
                 "width": 15,
                 "height": 15,
                 "properties": {
-                  "endpoint": "${CwCustomWidgetFunction.Arn}",
+                  "endpoint": "${CwCustomWidgetNodeJsFunction.Arn}",
                   "params": {
                     "logGroups": "${LogGroupName}",
                     "botId": "${BotId}",
@@ -1198,6 +1228,29 @@ Resources:
                     "timeRange": true
                   },
                   "title": "Conversation path aggregated per session"
+                }
+              },
+              {
+                "type": "custom",
+                "width": 15,
+                "height": 15,
+                "properties": {
+                  "endpoint": "${CwCustomWidgetPythonFunction.Arn}",
+                  "params": {
+                    "logGroups": "${LogGroupName}",
+                    "botId": "${BotId}",
+                    "botLocaleId": "${BotLocaleId}",
+                    "widgetType": "slotsTopN",
+                    "topN": 10,
+                    "slotsToExclude": [],
+                    "intentsToExclude": [],
+                    "query": "FILTER bot.id = '${BotId}' AND bot.localeId = '${BotLocaleId}'"
+                  },
+                  "updateOn": {
+                    "refresh": true,
+                    "timeRange": true
+                  },
+                  "title": "Top N slots per intent"
                 }
               }
               ${WriteWidgets}
@@ -1232,7 +1285,7 @@ Resources:
                   "width": 15,
                   "height": 15,
                   "properties": {
-                    "endpoint": "${CwCustomWidgetFunction.Arn}",
+                    "endpoint": "${CwCustomWidgetNodeJsFunction.Arn}",
                     "params": {
                       "logGroups": "${LogGroupName}",
                       "botId": "${BotId}",
