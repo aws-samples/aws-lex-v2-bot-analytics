@@ -3,7 +3,7 @@ AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 
 Description: |-
-  Lex V2 Analytics (v0.2.0)
+  Lex V2 Analytics (v0.3.0)
   Deploys a CloudWatch Dashboard for your Lex V2 bot
 
 Parameters:
@@ -108,7 +108,7 @@ Metadata:
       - Dashboard
       - CloudWatch
     HomePageUrl: https://github.com/aws-samples/aws-lex-v2-bot-analytics
-    SemanticVersion: 0.2.0
+    SemanticVersion: 0.3.0
     SourceCodeUrl: https://github.com/aws-samples/aws-lex-v2-bot-analytics
 
 Resources:
