@@ -20,10 +20,18 @@ def render_session_attributes_top_n_widget(event, input_df):
     normalized_message_df = pd.DataFrame.from_records(
         pd.json_normalize(message_series, max_level=1)
     )
+    session_attributes_series = normalized_message_df["sessionState.sessionAttributes"].dropna(
+        how="all"
+    )
+    if session_attributes_series.emtpy:
+        return "<pre>No session attributes found</pre>"
+
     # extract sessionState.sessionAttributes dictionaries and turn then into a dataframe
-    session_attributes_df = pd.DataFrame.from_records(
-        normalized_message_df["sessionState.sessionAttributes"].dropna(how="all")
-    ).drop(session_attributes_to_exclude, axis="columns")
+    session_attributes_df = pd.DataFrame.from_records(session_attributes_series).drop(
+        session_attributes_to_exclude,
+        axis="columns",
+        errors="ignore",
+    )
 
     session_attributes_columns = session_attributes_df.columns
     session_attributes_topn_values = []
