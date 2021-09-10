@@ -333,7 +333,7 @@ Resources:
       CodeUri: ./src/lambda_functions/cw_custom_widget_python
       Description: !Sub CloudWatch Custom Widget Python for ${AWS::StackName}
       Handler: lambda_function.handler
-      MemorySize: 1024
+      MemorySize: 2048
       Layers:
         - !Ref CwCustomWidgetPythonLayer
       Runtime: python3.9
