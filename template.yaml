@@ -1250,7 +1250,29 @@ Resources:
                     "refresh": true,
                     "timeRange": true
                   },
-                  "title": "Top N slots per intent"
+                  "title": ""
+                }
+              },
+              {
+                "type": "custom",
+                "width": 15,
+                "height": 15,
+                "properties": {
+                  "endpoint": "${CwCustomWidgetPythonFunction.Arn}",
+                  "params": {
+                    "logGroups": "${LogGroupName}",
+                    "botId": "${BotId}",
+                    "botLocaleId": "${BotLocaleId}",
+                    "widgetType": "sessionAttributesTopN",
+                    "topN": 10,
+                    "sessionAttributesToExclude": [],
+                    "query": "FILTER bot.id = '${BotId}' AND bot.localeId = '${BotLocaleId}'"
+                  },
+                  "updateOn": {
+                    "refresh": true,
+                    "timeRange": true
+                  },
+                  "title": ""
                 }
               }
               ${WriteWidgets}

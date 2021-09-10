@@ -10,6 +10,7 @@ from lib.client import get_client
 from lib.logger import get_logger
 from lib.cw_logs import get_query_results_as_df
 from widgets.slots import render_slots_top_n_widget
+from widgets.session_attributes import render_session_attributes_top_n_widget
 
 # pylint: enable=import-error
 
@@ -48,5 +49,7 @@ def handler(event, _):
 
     if widget_type == "slotsTopN":
         return render_slots_top_n_widget(event=event, input_df=input_df)
+    if widget_type == "sessionAttributesTopN":
+        return render_session_attributes_top_n_widget(event=event, input_df=input_df)
 
     raise RuntimeError(f"unknown widget type: {widget_type}")

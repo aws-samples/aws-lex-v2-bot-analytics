@@ -1,9 +1,9 @@
 {
-    "logGroups": "lex-analytics-oatoa-conversation-logs",
-    "botId": "IJE04MZEZ3",
+    "logGroups": "lex-analytics-v003-conversation-logs",
+    "botId": "NKTYGIYOGB",
     "botLocaleId": "en_US",
     "widgetType": "slotsTopN",
-    "query": "filter bot.id = 'IJE04MZEZ3' and bot.localeId = 'en_US'",
+    "query": "filter bot.id = 'NKTYGIYOGB' and bot.localeId = 'en_US'",
     "widgetContext": {
         "dashboardName": "lex-analytics-oatoa-Conversation-Analytics",
         "widgetId": "widget-90",
@@ -19,18 +19,18 @@
         "isAutoPeriod": true,
         "timeRange": {
             "mode": "absolute",
-            "start": 1628164818767,
-            "end": 1628179218767
+            "start": 1631221052701,
+            "end": 1631224652701
         },
         "theme": "light",
         "linkCharts": true,
         "title": "Test",
         "params": {
-            "logGroups": "lex-analytics-oatoa-conversation-logs",
-            "botId": "IJE04MZEZ3",
+            "logGroups": "lex-analytics-v003-conversation-logs",
+            "botId": "NKTYGIYOGB",
             "botLocaleId": "en_US",
             "widgetType": "slotsTopN",
-            "query": "filter bot.id = 'IJE04MZEZ3' and bot.localeId = 'en_US'"
+            "query": "filter bot.id = 'NKTYGIYOGB' and bot.localeId = 'en_US'"
         },
         "forms": {
             "all": {}
