@@ -1,5 +1,9 @@
 {
     "CwMfdCfnCrFunction": {
         "LOG_LEVEL": "DEBUG"
+    },
+    "BotTesterFunction": {
+        "LOG_LEVEL": "DEBUG",
+        "BOTS_CONFIG_JSON": "{\"BankerBot\": {\"botId\": \"MYBOTID\", \"botAliasId\": \"MYBOTALIAS\", \"localeIds\": \"en_US\"}}"
     }
 }
