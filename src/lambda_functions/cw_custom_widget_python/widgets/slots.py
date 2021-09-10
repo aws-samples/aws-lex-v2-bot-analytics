@@ -48,9 +48,10 @@ def render_slots_top_n_widget(event, input_df):
         for slot_name in slot_names:
             slot_column_name = f"{slot_name}{_SLOT_NAME_SUFFIX}"
 
-            intent_slot_values_df = slots_intent_df[slots_intent_df["name"] == intent_name][
-                [slot_column_name]
-            ].rename({slot_column_name: "value"}, axis="columns")
+            intent_slot_values_df = slots_intent_df[
+                (slots_intent_df["name"] == intent_name)
+                & slots_intent_df["state"].isin(["Fulfilled", "ReadyForFullfilment"])
+            ][[slot_column_name]].rename({slot_column_name: "value"}, axis="columns")
 
             intent_slot_topn_values_df = (
                 intent_slot_values_df.value_counts()
@@ -64,15 +65,18 @@ def render_slots_top_n_widget(event, input_df):
                 {
                     "intent_name": intent_name,
                     "slot_name": slot_name,
-                    "topn_table": intent_slot_topn_values_df.to_html(index=False),
+                    "topn_df": intent_slot_topn_values_df,
                 }
             )
 
-    output = f"<h2>Top {top_n} Slot Values</h2>"
+    output = f"<h2>Top {top_n} Slot Values in Fulfilled Intents</h2>"
     for entry in intent_slot_topn_values:
-        output = (
-            output + f"<br><h3>Intent: {entry['intent_name']} Slot: {entry['slot_name']}</h3><br>"
-        )
-        output = output + entry["topn_table"]
+        if not entry["topn_df"].empty:
+            output = (
+                output
+                + f"<br><h3>Intent: {entry['intent_name']}"
+                + f" Slot: {entry['slot_name']}</h3><br>"
+            )
+            output = output + entry["topn_df"].to_html(index=False)
 
     return output
