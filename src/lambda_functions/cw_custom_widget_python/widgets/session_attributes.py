@@ -23,7 +23,7 @@ def render_session_attributes_top_n_widget(event, input_df):
     session_attributes_series = normalized_message_df["sessionState.sessionAttributes"].dropna(
         how="all"
     )
-    if session_attributes_series.emtpy:
+    if session_attributes_series.empty:
         return "<pre>No session attributes found</pre>"
 
     # extract sessionState.sessionAttributes dictionaries and turn then into a dataframe
