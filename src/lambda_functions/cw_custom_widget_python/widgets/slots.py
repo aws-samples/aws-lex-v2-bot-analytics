@@ -24,12 +24,22 @@ def render_slots_top_n_widget(event, input_df):
     normalized_message_df = pd.DataFrame.from_records(
         pd.json_normalize(message_series, max_level=1)
     )
+    if "sessionState.intent" not in normalized_message_df.columns:
+        return "<pre>No intent data found</pre>"
+
     # extract sessionState.intent dictionaries and turn then into a dataframe
     intent_df = pd.DataFrame.from_records(normalized_message_df["sessionState.intent"])
+
     # extract slots and normalize
+    if "slots" not in intent_df.columns:
+        return "<pre>No slots data found</pre>"
+
     slots_df = pd.json_normalize(intent_df["slots"]).dropna(how="all")
+
     # join slots with intent to get a flattened dataframe with slots and intents
     slots_intent_df = slots_df.join(intent_df)
+    if slots_intent_df.empty:
+        return "<pre>No slot values found</pre>"
 
     # get intent names in data without exclusion
     slots_intent_columns = slots_intent_df.columns
@@ -50,7 +60,7 @@ def render_slots_top_n_widget(event, input_df):
 
             intent_slot_values_df = slots_intent_df[
                 (slots_intent_df["name"] == intent_name)
-                & slots_intent_df["state"].isin(["Fulfilled", "ReadyForFullfilment"])
+                & slots_intent_df["state"].isin(["Fulfilled", "ReadyForFulfillment"])
             ][[slot_column_name]].rename({slot_column_name: "value"}, axis="columns")
 
             intent_slot_topn_values_df = (
