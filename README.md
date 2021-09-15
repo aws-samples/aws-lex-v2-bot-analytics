@@ -257,6 +257,10 @@ Here are more details about the general SAM parameters:
   within the selected time range. The CloudWatch Contributor Insights feature
   allows a maximum time range for the report is 24 hours, but you can choose a
   24-hour window that occurred up to 15 days ago.
+- The Sentiment Analysis metrics will be empty if your bot does not have
+  Sentiment Analysis enabled. For details, see the Lex V2
+  [Sentiment Analysis](https://docs.aws.amazon.com/lex/latest/dg/sentiment-analysis.html)
+  documentation.
 
 ## Development
 
