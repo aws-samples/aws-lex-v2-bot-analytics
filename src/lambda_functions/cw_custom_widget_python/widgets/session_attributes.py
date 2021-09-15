@@ -20,11 +20,16 @@ def render_session_attributes_top_n_widget(event, input_df):
     normalized_message_df = pd.DataFrame.from_records(
         pd.json_normalize(message_series, max_level=1)
     )
+
+    if "sessionState.sessionAttributes" not in normalized_message_df.columns:
+        return "<pre>No session attributes found</pre>"
+
     session_attributes_series = normalized_message_df["sessionState.sessionAttributes"].dropna(
         how="all"
     )
+
     if session_attributes_series.empty:
-        return "<pre>No session attributes found</pre>"
+        return "<pre>No session attribute values found</pre>"
 
     # extract sessionState.sessionAttributes dictionaries and turn then into a dataframe
     session_attributes_df = pd.DataFrame.from_records(session_attributes_series).drop(
