@@ -1221,7 +1221,7 @@ Resources:
                     "botId": "${BotId}",
                     "botLocaleId": "${BotLocaleId}",
                     "widgetType": "conversationPath",
-                    "query": "FILTER bot.id = '${BotId}' AND bot.localeId = '${BotLocaleId}' | FILTER sessionState.intent.state = 'Fulfilled' OR sessionState.intent.state = 'ReadyForFullfilment'  | STATS COUNT(*) AS count BY sessionId AS @sessionId, sessionState.intent.name AS @intentName, BIN(5s) AS @period | SORT @period ASC"
+                    "query": "FILTER bot.id = '${BotId}' AND bot.localeId = '${BotLocaleId}' | FILTER sessionState.intent.state = 'Fulfilled' OR sessionState.intent.state = 'ReadyForFulfillment'  | STATS COUNT(*) AS count BY sessionId AS @sessionId, sessionState.intent.name AS @intentName, BIN(5s) AS @period | SORT @period ASC"
                   },
                   "updateOn": {
                     "refresh": true,

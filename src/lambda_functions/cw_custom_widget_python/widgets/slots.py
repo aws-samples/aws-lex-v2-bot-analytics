@@ -50,7 +50,7 @@ def render_slots_top_n_widget(event, input_df):
 
             intent_slot_values_df = slots_intent_df[
                 (slots_intent_df["name"] == intent_name)
-                & slots_intent_df["state"].isin(["Fulfilled", "ReadyForFullfilment"])
+                & slots_intent_df["state"].isin(["Fulfilled", "ReadyForFulfillment"])
             ][[slot_column_name]].rename({slot_column_name: "value"}, axis="columns")
 
             intent_slot_topn_values_df = (
