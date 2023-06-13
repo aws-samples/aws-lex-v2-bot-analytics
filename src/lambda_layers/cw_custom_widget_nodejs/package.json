@@ -3,8 +3,8 @@
   "description": "Lex Analytics Shared Lambda Layer",
   "version": "0.1.0",
   "dependencies": {
-    "@aws-sdk/client-cloudwatch-logs": "^3.22.0",
-    "@aws-sdk/client-lex-models-v2": "^3.25.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.350.0",
+    "@aws-sdk/client-lex-models-v2": "^3.350.0",
     "d3": "^7.6.1",
     "d3-sankey": "^0.12.3",
     "d3-sankey-circular": "^0.34.0",
