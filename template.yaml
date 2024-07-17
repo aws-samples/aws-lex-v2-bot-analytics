@@ -277,7 +277,7 @@ Resources:
   CwCustomWidgetNodeJsLayer:
     Type: AWS::Serverless::LayerVersion
     Metadata:
-      BuildMethod: nodejs14.x
+      BuildMethod: nodejs20.x
     Properties:
       Description:
         !Sub "Lex Analytics CloudWatch Custom Widget Node.js layer for \
@@ -285,7 +285,7 @@ Resources:
       ContentUri: ./src/lambda_layers/cw_custom_widget_nodejs
       LayerName: !Sub "LexAnalyticsSharedNodeJs-${AWS::StackName}"
       CompatibleRuntimes:
-        - nodejs14.x
+        - nodejs20.x
 
   SharedCfnCrPythonLayer:
     Type: AWS::Serverless::LayerVersion
@@ -320,7 +320,7 @@ Resources:
       Description: !Sub
         CloudWatch Custom Widget for ${AWS::StackName}
       Handler: index.handler
-      Runtime: nodejs14.x
+      Runtime: nodejs20.x
       Layers:
         - !Ref CwCustomWidgetNodeJsLayer
       MemorySize: 512
