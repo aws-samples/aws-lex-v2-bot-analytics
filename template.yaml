@@ -81,6 +81,11 @@ Parameters:
       - true
       - false
 
+  RunTimeVersion:
+    Description: Set NodeJs RunTime Version
+    Type: String
+    Default: nodejs20.x
+
 Conditions:
   ShouldDeploySampleBots: !Equals [!Ref ShouldDeploySampleBots, true]
   ShouldCreateLogGroup: !Equals [!Ref LexConversationLogGroupName, '']
@@ -277,7 +282,7 @@ Resources:
   CwCustomWidgetNodeJsLayer:
     Type: AWS::Serverless::LayerVersion
     Metadata:
-      BuildMethod: nodejs14.x
+      BuildMethod: !Ref RunTimeVersion
     Properties:
       Description:
         !Sub "Lex Analytics CloudWatch Custom Widget Node.js layer for \
@@ -285,7 +290,7 @@ Resources:
       ContentUri: ./src/lambda_layers/cw_custom_widget_nodejs
       LayerName: !Sub "LexAnalyticsSharedNodeJs-${AWS::StackName}"
       CompatibleRuntimes:
-        - nodejs14.x
+        - !Ref RunTimeVersion
 
   SharedCfnCrPythonLayer:
     Type: AWS::Serverless::LayerVersion
@@ -320,7 +325,7 @@ Resources:
       Description: !Sub
         CloudWatch Custom Widget for ${AWS::StackName}
       Handler: index.handler
-      Runtime: nodejs14.x
+      Runtime: !Ref RunTimeVersion
       Layers:
         - !Ref CwCustomWidgetNodeJsLayer
       MemorySize: 512
